@@ -48,6 +48,8 @@
     #define ME_ASSERT(x)
 #endif
 
+#include <iostream>
+
 // Types
 // Primitives
 using u8  = uint8_t;

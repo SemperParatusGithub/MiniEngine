@@ -1,5 +1,6 @@
 #pragma once
 #include "EngineBase.h"
+#include "Window.h"
 
 
 namespace Engine
@@ -22,6 +23,8 @@ namespace Engine
 	private:
 		static Application *s_Instance;
 
+	private:
 		bool m_Running;
+		UniquePtr<Window> m_Window;
 	};
 }
