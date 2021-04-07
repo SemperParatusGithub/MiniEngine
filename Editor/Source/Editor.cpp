@@ -9,7 +9,11 @@ void Editor::OnDestroy()
 {
 }
 
-void Editor::OnUpdate()
+void Editor::OnUpdate(float delta)
+{
+}
+
+void Editor::OnEvent(Engine::Event &event)
 {
 }
 

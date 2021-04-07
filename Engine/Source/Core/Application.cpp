@@ -1,6 +1,8 @@
 #include "Precompiled.h"
 #include "Application.h"
 
+#include "Event.h"
+
 
 namespace Engine
 {
@@ -11,11 +13,14 @@ namespace Engine
 		s_Instance = this;
 		m_Running = true;
 
+		ME_INFO("Starting up ...");
+
 		m_Window = MakeUnique<Window>("Mini Engine", 1280, 720);
 	}
 
 	Application::~Application()
 	{
+		ME_INFO("Shutting down ...");
 	}
 
 	void Application::Run()
@@ -27,7 +32,20 @@ namespace Engine
 			m_Window->SwapBuffers();
 			m_Window->PollEvents();
 
-			OnUpdate();
+			for (auto &event : m_Window->GetEventBuffer())
+			{
+				if (event.type == EventType::WindowClosed)
+					m_Running = false;
+
+				// if (event.type == EventType::KeyPressed)
+				//	  ME_TRACE("Key Pressed: %d, Repeat Count: %d", event.key.code, event.key.repeatCount);
+
+				OnEvent(event);
+			}
+
+			m_Window->ClearEventBuffer();
+
+			OnUpdate(0.0f);
 			OnImGui();
 		}
 

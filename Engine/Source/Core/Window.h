@@ -1,11 +1,15 @@
 #pragma once
 #include "EngineBase.h"
 
+#include <vector>
+
 
 struct GLFWwindow;
 
 namespace Engine
 {
+	struct Event;
+
 	class Window
 	{
 	public:
@@ -14,6 +18,11 @@ namespace Engine
 
 		void SwapBuffers();
 		void PollEvents();
+
+		GLFWwindow *GetWindowPointer() const;
+
+		std::vector<Event> &GetEventBuffer();
+		void ClearEventBuffer();
 
 		void Maximize();
 
@@ -25,5 +34,6 @@ namespace Engine
 
 	private:
 		GLFWwindow *m_WindowHandle;
+		std::vector<Event> m_EventBuffer;
 	};
 }

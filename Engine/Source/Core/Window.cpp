@@ -4,6 +4,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "Event.h"
+
 
 namespace Engine
 {
@@ -23,6 +25,8 @@ namespace Engine
 		ME_ASSERT(success);
 		ME_INFO("Initialized Glad");
 
+		glfwSetWindowUserPointer(m_WindowHandle, &m_EventBuffer);
+
 		SetEventCallbacks();
 	}
 	Window::~Window()
@@ -38,6 +42,24 @@ namespace Engine
 	void Window::PollEvents()
 	{
 		glfwPollEvents();
+	}
+
+	GLFWwindow *Window::GetWindowPointer() const
+	{
+		return m_WindowHandle;
+	}
+
+	std::vector<Event> &Window::GetEventBuffer()
+	{
+		for (std::size_t i = 0; i < m_EventBuffer.size(); i++)
+			if (m_EventBuffer[i].handled)
+				m_EventBuffer.erase(m_EventBuffer.begin() + i);
+
+		return m_EventBuffer;
+	}
+	void Window::ClearEventBuffer()
+	{
+		m_EventBuffer.clear();
 	}
 
 	void Window::Maximize()
@@ -60,9 +82,109 @@ namespace Engine
 
 	void Window::SetEventCallbacks()
 	{
+		// Error Callback
 		glfwSetErrorCallback([](int error, const char *description)
 		{
 			ME_ERROR("%d: %s", error, description);
 		});
+
+		// Window Events
+		glfwSetWindowCloseCallback(m_WindowHandle, [](GLFWwindow *window)
+		{
+			auto &eventQueue = *reinterpret_cast<std::vector<Event>*>(glfwGetWindowUserPointer(window));
+			Event event;
+			event.type = EventType::WindowClosed;
+			eventQueue.push_back(event);
+		});
+		glfwSetWindowSizeCallback(m_WindowHandle, [](GLFWwindow *window, int sizeX, int sizeY)
+		{
+			auto &eventQueue = *reinterpret_cast<std::vector<Event>*>(glfwGetWindowUserPointer(window));
+			Event event;
+			event.type = EventType::WindowResized;
+			event.window.size = { static_cast<float>(sizeX), static_cast<float>(sizeY) };
+			eventQueue.push_back(event);
+		});
+		glfwSetWindowPosCallback(m_WindowHandle, [](GLFWwindow *window, int positionX, int positionY)
+		{
+			auto &eventQueue = *reinterpret_cast<std::vector<Event>*>(glfwGetWindowUserPointer(window));
+			Event event;
+			event.type = EventType::WindowMoved;
+			event.window.position = { static_cast<float>(positionX), static_cast<float>(positionY) };
+			eventQueue.push_back(event);
+		});
+
+		// KeyEvents
+		glfwSetKeyCallback(m_WindowHandle, [](GLFWwindow *window, int key, int scanCode, int action, int mods)
+		{
+			auto &eventQueue = *reinterpret_cast<std::vector<Event>*>(glfwGetWindowUserPointer(window));
+			Event event;
+
+			switch (action)
+			{
+				case GLFW_PRESS:
+				{
+					event.type = EventType::KeyPressed;
+					event.key.code = key;
+					event.key.repeatCount = 0;
+					break;
+				}
+				case GLFW_RELEASE:
+				{
+					event.type = EventType::KeyReleased;
+					event.key.code = key;
+					break;
+				}
+				case GLFW_REPEAT:
+				{
+					event.type = EventType::KeyPressed;
+					event.key.code = key;
+					event.key.repeatCount = 1;
+					break;
+				}
+			}
+
+			eventQueue.push_back(event);
+		});
+	
+		// Mouse Events
+		glfwSetMouseButtonCallback(m_WindowHandle, [](GLFWwindow *window, int button, int action, int mods)
+		{
+			auto &eventQueue = *reinterpret_cast<std::vector<Event>*>(glfwGetWindowUserPointer(window));
+			Event event;
+
+			switch (action)
+			{
+				case GLFW_PRESS:
+				{
+					event.type = EventType::MouseButtonPressed;
+					event.mouse.code = button;
+					break;
+				}
+				case GLFW_RELEASE:
+				{
+					event.type = EventType::MouseButtonReleased;
+					event.mouse.code = button;
+					break;
+				}
+			}
+
+			eventQueue.push_back(event);
+		});
+		glfwSetCursorPosCallback(m_WindowHandle, [](GLFWwindow *window, double xPosition, double yPosition)
+		{
+			auto &eventQueue = *reinterpret_cast<std::vector<Event>*>(glfwGetWindowUserPointer(window));
+			Event event;
+			event.type = EventType::MouseMoved;
+			event.mouse.position = { static_cast<float>(xPosition), static_cast<float>(yPosition) };
+			eventQueue.push_back(event);
+		});
+		glfwSetScrollCallback(m_WindowHandle, [](GLFWwindow *window, double xOffset, double yOffset)
+			{
+				auto &eventQueue = *reinterpret_cast<std::vector<Event>*>(glfwGetWindowUserPointer(window));
+				Event event;
+				event.type = EventType::MouseScrolled;
+				event.mouse.offset = { static_cast<float>(xOffset), static_cast<float>(yOffset) };
+				eventQueue.push_back(event);
+			});
 	}
 }
