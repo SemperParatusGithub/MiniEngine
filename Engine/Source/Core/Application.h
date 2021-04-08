@@ -19,7 +19,9 @@ namespace Engine
 
 		void Run();
 
-		Application *GetInstance() { return s_Instance; }
+		UniquePtr<Window> &GetWindow() { return m_Window; }
+
+		static Application *GetInstance() { return s_Instance; }
 
 	private:
 		static Application *s_Instance;
