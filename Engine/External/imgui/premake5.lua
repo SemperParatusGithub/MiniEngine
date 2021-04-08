@@ -2,6 +2,7 @@ project "ImGui"
 	location "../../../Scripts/Build"
 	kind "StaticLib"
 	language "C++"
+	warnings "off"
 
     targetdir ("../../../Binaries/" .. outputdir)
     objdir ("../../../Binaries/Intermediate/" .. outputdir)

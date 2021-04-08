@@ -3,6 +3,7 @@ project "Glad"
     kind "StaticLib"
     language "C"
     staticruntime "on"
+    warnings "off"
     
     targetdir ("../../../Binaries/" .. outputdir)
     objdir ("../../../Binaries/Intermediate/" .. outputdir)
