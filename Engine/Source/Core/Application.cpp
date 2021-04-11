@@ -3,6 +3,8 @@
 
 #include "Event.h"
 
+#include "Graphics/Renderer.h"
+
 
 namespace Engine
 {
@@ -16,10 +18,14 @@ namespace Engine
 		ME_INFO("Starting up ...");
 
 		m_Window = MakeUnique<Window>("Mini Engine", 1280, 720);
+
+		Renderer::Init();
 	}
 
 	Application::~Application()
 	{
+		Renderer::Shutdown();
+
 		ME_INFO("Shutting down ...");
 	}
 

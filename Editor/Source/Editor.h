@@ -5,6 +5,9 @@
 class Editor : public Engine::Application
 {
 public:
+	Editor();
+	~Editor();
+
 	virtual void OnCreate() override;
 	virtual void OnDestroy() override;
 	virtual void OnUpdate(float delta) override;
@@ -15,4 +18,7 @@ public:
 	{
 		return new Editor();
 	}
+
+private:
+	Engine::GraphicsPipeline m_Pipeline;
 };

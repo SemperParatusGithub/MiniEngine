@@ -88,6 +88,27 @@ namespace Engine
 			ME_ERROR("%d: %s", error, description);
 		});
 
+		// OpenGL Callback
+		glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
+			{
+				switch (severity)
+				{
+				case GL_DEBUG_SEVERITY_HIGH:
+					ME_ERROR("[OpenGL Debug HIGH] %s", message);
+					ME_ASSERT(false);
+					break;
+				case GL_DEBUG_SEVERITY_MEDIUM:
+					ME_WARN("[OpenGL Debug MEDIUM] %s", message);
+					break;
+				case GL_DEBUG_SEVERITY_LOW:
+					ME_WARN("[OpenGL Debug LOW] %s", message);
+					break;
+				case GL_DEBUG_SEVERITY_NOTIFICATION:
+					ME_INFO("[OpenGL Debug NOTIFICATION] %s", message);
+					break;
+				}
+			}, nullptr);
+
 		// Window Events
 		glfwSetWindowCloseCallback(m_WindowHandle, [](GLFWwindow *window)
 		{
