@@ -60,6 +60,11 @@ namespace Engine
         glUseProgram(m_RendererID);
     }
 
+    void Shader::SetUniformMatrix4(const char *name, const glm::mat4 &matrix)
+    {
+        glUniformMatrix4fv(glGetUniformLocation(m_RendererID, name), 1, GL_FALSE, &matrix[0][0]);
+    }
+
     u32 Shader::CreateShader(const std::string &vertexShader, const std::string &fragmentShader)
     {
         u32 shaderProgram = glCreateProgram();

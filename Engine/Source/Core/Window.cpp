@@ -15,6 +15,8 @@ namespace Engine
 		ME_ASSERT(success);
 		ME_INFO("Initialized GLFW");
 
+		glfwWindowHint(GLFW_SAMPLES, 4);
+
 		ME_INFO("Creating Window %s : %d, %d", title.c_str(), width, height);
 		m_WindowHandle = glfwCreateWindow(static_cast<int>(width), static_cast<int>(height),
 			title.c_str(), nullptr, nullptr);

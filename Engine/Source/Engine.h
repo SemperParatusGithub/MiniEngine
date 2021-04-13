@@ -7,3 +7,4 @@
 #include "Core/Input.h"
 
 #include "Graphics/Renderer.h"
+#include "Graphics/Camera.h"

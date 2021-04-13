@@ -86,6 +86,8 @@ namespace Engine
 
 		void Bind() const;
 
+		SharedPtr<Shader> GetShader() { return m_Shader; }
+
 	private:
 		friend class Renderer;
 

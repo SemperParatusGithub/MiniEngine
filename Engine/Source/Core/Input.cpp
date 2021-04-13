@@ -18,7 +18,7 @@ namespace Engine
 	bool Input::IsMouseButtonPressed(MouseCode code)
 	{
 		GLFWwindow *window = Application::GetInstance()->GetWindow()->GetWindowPointer();
-		auto state = glfwGetKey(window, static_cast<u32>(code));
+		auto state = glfwGetMouseButton(window, static_cast<u32>(code));
 		return state == GLFW_PRESS;
 	}
 	

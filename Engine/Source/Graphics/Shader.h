@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/EngineBase.h"
 
+#include <glm/glm.hpp>
+
 
 namespace Engine
 {
@@ -14,6 +16,8 @@ namespace Engine
 		void LoadFromFiles(const std::string &vertexPath, const std::string &fragmentPath);
 
 		virtual void Bind() const;
+
+		void SetUniformMatrix4(const char *name, const glm::mat4 &matrix);
 
 	private:
 		u32 CreateShader(const std::string &vertexShader, const std::string &fragmentShader);

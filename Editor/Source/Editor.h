@@ -21,4 +21,5 @@ public:
 
 private:
 	Engine::GraphicsPipeline m_Pipeline;
+	Engine::EditorCamera m_Camera;
 };
