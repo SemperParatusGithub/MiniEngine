@@ -4,6 +4,7 @@
 #include "Event.h"
 
 #include "Graphics/Renderer.h"
+#include "Graphics/ImGuiHelper.h"
 
 
 namespace Engine
@@ -19,7 +20,8 @@ namespace Engine
 
 		m_Window = MakeUnique<Window>("Mini Engine", 1280, 720);
 
-		Renderer::Init();
+		Renderer::Initialize();
+		ImGuiHelper::Initialize();
 	}
 
 	Application::~Application()
@@ -52,7 +54,10 @@ namespace Engine
 			m_Window->ClearEventBuffer();
 
 			OnUpdate(0.0f);
+
+			ImGuiHelper::BeginFrame();
 			OnImGui();
+			ImGuiHelper::EndFrame();
 		}
 
 		OnDestroy();

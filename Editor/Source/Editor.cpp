@@ -1,5 +1,7 @@
 #include "Editor.h"
 
+#include <imgui/imgui.h>
+
 
 Editor::Editor() : 
 	m_Camera(45.0f, 1.778f, 0.1f, 1000.0f)
@@ -58,4 +60,7 @@ void Editor::OnEvent(Engine::Event &event)
 
 void Editor::OnImGui()
 {
+	ImGui::Begin("Test Window");
+	ImGui::Text("Hello World");
+	ImGui::End();
 }

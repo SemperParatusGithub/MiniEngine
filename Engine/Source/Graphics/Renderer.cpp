@@ -6,7 +6,7 @@
 
 namespace Engine
 {
-	void Renderer::Init()
+	void Renderer::Initialize()
 	{
 		ME_INFO("Initializing Renderer");
 	}
