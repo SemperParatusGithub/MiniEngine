@@ -64,6 +64,14 @@ namespace Engine
     {
         glUniformMatrix4fv(glGetUniformLocation(m_RendererID, name), 1, GL_FALSE, &matrix[0][0]);
     }
+    void Shader::SetUniformFloat(const char *name, float value)
+    {
+        glUniform1f(glGetUniformLocation(m_RendererID, name), value);
+    }
+    void Shader::SetUniformFloat3(const char *name, const glm::vec3 &values)
+    {
+        glUniform3f(glGetUniformLocation(m_RendererID, name), values.x, values.y, values.z);
+    }
 
     u32 Shader::CreateShader(const std::string &vertexShader, const std::string &fragmentShader)
     {

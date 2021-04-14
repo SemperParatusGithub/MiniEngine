@@ -18,6 +18,8 @@ namespace Engine
 		virtual void Bind() const;
 
 		void SetUniformMatrix4(const char *name, const glm::mat4 &matrix);
+		void SetUniformFloat(const char *name, float value);
+		void SetUniformFloat3(const char *name, const glm::vec3 &values);
 
 	private:
 		u32 CreateShader(const std::string &vertexShader, const std::string &fragmentShader);

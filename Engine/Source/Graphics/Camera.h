@@ -55,7 +55,7 @@ namespace Engine
 		float m_Yaw = 0.0f, m_Pitch = -25.0f;
 
 		float m_MovementSpeed = 1.0f;
-		float m_RotationSpeed = 0.01f;
+		float m_RotationSpeed = 0.005f;
 		float m_ZoomSpeed = 0.5f;
 
 		glm::vec2 m_PreviousMousePosition = { 0.0f, 0.0f };
