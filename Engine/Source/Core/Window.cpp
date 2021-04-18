@@ -29,6 +29,8 @@ namespace Engine
 
 		glfwSetWindowUserPointer(m_WindowHandle, &m_EventBuffer);
 
+		glEnable(GL_DEPTH_TEST);
+
 		SetEventCallbacks();
 	}
 	Window::~Window()

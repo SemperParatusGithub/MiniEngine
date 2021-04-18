@@ -73,6 +73,11 @@ namespace Engine
         glUniform3f(glGetUniformLocation(m_RendererID, name), values.x, values.y, values.z);
     }
 
+    void Shader::SetUniformInt(const char *name, int value)
+    {
+        glUniform1i(glGetUniformLocation(m_RendererID, name), value);
+    }
+
     u32 Shader::CreateShader(const std::string &vertexShader, const std::string &fragmentShader)
     {
         u32 shaderProgram = glCreateProgram();

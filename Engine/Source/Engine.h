@@ -8,3 +8,4 @@
 
 #include "Graphics/Renderer.h"
 #include "Graphics/Camera.h"
+#include "Graphics/Texture.h"

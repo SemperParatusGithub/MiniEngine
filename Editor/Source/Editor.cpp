@@ -7,7 +7,7 @@
 
 
 Editor::Editor() : 
-	m_Camera(90.0f, 1.778f, 0.1f, 1000.0f)
+	m_Camera(45.0f, 1.778f, 0.1f, 1000.0f)
 {
 }
 Editor::~Editor()
@@ -18,17 +18,17 @@ void Editor::OnCreate()
 {
 	float vertices[] = {
 	  // Position				Color
-		-0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f, 1.0f,
-		 0.5f, -0.5f, 0.0f,		0.0f, 1.0f, 0.0f, 1.0f,
-		 0.0f,  0.5f, 0.0f,		0.0f, 0.0f, 1.0f, 1.0f
+		-0.5f, -0.5f, 0.0f,		0.0f, 0.0f, 
+		 0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 
+		 0.0f,  0.5f, 0.0f,		0.5f, 1.0f
 	};
 	u32 indices[] = {
 		0, 1, 2
 	};
 
 	Engine::PipelineLayout layout = {
-		{ "a_Position", Engine::VertexFormat::Float3, false },
-		{ "a_Color",    Engine::VertexFormat::Float4, false }
+		{ "a_Position",  Engine::VertexFormat::Float3, false },
+		{ "a_TexCoords", Engine::VertexFormat::Float2, false }
 	};
 
 	auto shader = MakeShared<Engine::Shader>("Test.glsl");
@@ -39,6 +39,8 @@ void Editor::OnCreate()
 	m_Pipeline.Create(layout, shader, vertexBuffer, indexBuffer);
 
 	m_GridShader = MakeShared<Engine::Shader>("Grid.glsl");
+
+	m_TestTexture.Load("Brick.jpg");
 }
 
 void Editor::OnDestroy()
@@ -62,6 +64,8 @@ void Editor::OnUpdate(float delta)
 	auto shader = m_Pipeline.GetShader();
 	shader->Bind();
 	shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
+	shader->SetUniformInt("u_ProjectionView", 0);
+	m_TestTexture.Bind();
 	Engine::Renderer::SubmitPipeline(m_Pipeline);
 }
 
