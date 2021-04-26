@@ -1,7 +1,13 @@
 #include "Precompiled.h"
 #include "Renderer.h"
 
+#include "Mesh.h"
+
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <glad/glad.h>
+
+#include <imgui.h>
 
 
 namespace Engine
@@ -26,17 +32,17 @@ namespace Engine
 			0, 1, 2, 2, 3, 0
 		};
 
-		Engine::PipelineLayout layout = {
+		s_RendererData.quadPipeline.layout = {
 			{ "a_Position", Engine::VertexFormat::Float3, false },
 			{ "a_TexCoords", Engine::VertexFormat::Float2, false }
 		};
 
 		auto shader = MakeShared<Shader>("Test.glsl");
 
-		auto vertexBuffer = MakeShared<Engine::VertexBuffer>(vertices, sizeof(vertices), Engine::BufferUsage::Static);
-		auto indexBuffer = MakeShared<Engine::IndexBuffer>(indices, sizeof(indices), Engine::IndexFormat::Uint32, Engine::BufferUsage::Static);
+		s_RendererData.quadPipeline.vertexBuffer = MakeShared<Engine::VertexBuffer>(vertices, sizeof(vertices), Engine::BufferUsage::Static);
+		s_RendererData.quadPipeline.indexBuffer = MakeShared<Engine::IndexBuffer>(indices, sizeof(indices), Engine::IndexFormat::Uint32, Engine::BufferUsage::Static);
 
-		s_RendererData.quadPipeline.Create(layout, shader, vertexBuffer, indexBuffer);
+		s_RendererData.quadPipeline.Create();
 	}
 	void Renderer::Shutdown()
 	{
@@ -52,21 +58,57 @@ namespace Engine
 		glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
 	}
 
+	void Renderer::RenderLines(bool enable)
+	{
+		if(enable)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+	void Renderer::SetLineThickness(float thickness)
+	{
+		glLineWidth(thickness);
+	}
+
 	void Renderer::SubmitQuad(const SharedPtr<Shader> &shader)
 	{
-		s_RendererData.quadPipeline.m_Shader = shader;
 		s_RendererData.quadPipeline.Bind();
 		SubmitPipeline(s_RendererData.quadPipeline);
 	}
 
 	void Renderer::SubmitLine(const glm::vec3 &from, const glm::vec3 &to, const glm::vec4 color, float thickness)
 	{
+		ME_ASSERT(false);	// Not implemented
+	}
+
+	void Renderer::SubmitMesh(const SharedPtr<Mesh> &mesh, const glm::mat4 &transform)
+	{
+		mesh->m_Pipeline.Bind();
+		mesh->m_Shader->Bind();
+
+		auto &shader = mesh->m_Shader;
+		shader->SetUniformInt("u_FlipUVs", mesh->m_FlipUVs);
+
+		for (auto &submesh : mesh->m_SubMeshes)
+		{
+			auto &material = mesh->m_Materials[submesh.materialIndex];
+			auto &params = material.GetParameters();
+			auto &textures = material.GetTextures();
+
+			shader->SetUniformInt("u_UseAlbedoMap", textures.useAlbedo);
+			if(textures.albedo)
+				textures.albedo->Bind(0);
+			shader->SetUniformMatrix4("u_Transform", transform * submesh.transform);
+			shader->SetUniformInt("u_AlbedoMap", 0);
+
+			glDrawElementsBaseVertex(GL_TRIANGLES, submesh.indexCount, GL_UNSIGNED_INT, (void *) (sizeof(uint32_t) * submesh.indexOffset), submesh.vertexOffset);
+		}
 	}
 
 	void Renderer::SubmitPipeline(const GraphicsPipeline &pipeline)
 	{
 		pipeline.Bind();
-		glDrawElements(GL_TRIANGLES, pipeline.m_IndexBuffer->GetCount(),
-			pipeline.m_IndexBuffer->GetType(), nullptr);
+		glDrawElements(GL_TRIANGLES, pipeline.indexBuffer->GetCount(),
+			pipeline.indexBuffer->GetType(), nullptr);
 	}
 }

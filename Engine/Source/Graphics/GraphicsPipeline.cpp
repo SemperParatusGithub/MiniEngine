@@ -97,27 +97,20 @@ namespace Engine
 		m_VertexArrayRendererID(0)
 	{
 	}
-	GraphicsPipeline::GraphicsPipeline(PipelineLayout layout, SharedPtr<Shader> shader, SharedPtr<VertexBuffer> vertexBuffer, SharedPtr<IndexBuffer> indexBuffer)
-	{
-		Create(layout, shader, vertexBuffer, indexBuffer);
-	}
-
 	GraphicsPipeline::~GraphicsPipeline()
 	{
 	}
 
-	void GraphicsPipeline::Create(PipelineLayout layout, SharedPtr<Shader> shader, SharedPtr<VertexBuffer> vertexBuffer, SharedPtr<IndexBuffer> indexBuffer)
+	void GraphicsPipeline::Create()
 	{
-		m_Layout = layout;
-		m_Shader = shader;
-		m_VertexBuffer = vertexBuffer;
-		m_IndexBuffer = indexBuffer;
+		ME_ASSERT(vertexBuffer);
+		ME_ASSERT(indexBuffer);
 
 		glCreateVertexArrays(1, &m_VertexArrayRendererID);
 		glBindVertexArray(m_VertexArrayRendererID);
 
-		m_VertexBuffer->Bind();
-		m_IndexBuffer->Bind();
+		vertexBuffer->Bind();
+		indexBuffer->Bind();
 
 		ME_TRACE("---------------------------------------------------------");
 		ME_TRACE("Pipeline Layout: ");
@@ -150,7 +143,6 @@ namespace Engine
 		ME_ASSERT(m_VertexArrayRendererID);	// Can't bind invalid pipeline
 
 		glBindVertexArray(m_VertexArrayRendererID);
-		m_Shader->Bind();
 	}
 
 	int PipelineLayout::CalculateStride()

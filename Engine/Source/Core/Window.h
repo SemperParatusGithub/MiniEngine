@@ -24,6 +24,8 @@ namespace Engine
 		std::vector<Event> &GetEventBuffer();
 		void ClearEventBuffer();
 
+		void SetVSync(bool enabled = true);
+
 		void Maximize();
 
 		u32 GetWidth() const;

@@ -39,16 +39,16 @@ project "Editor"
 		defines "ME_DEBUG"
 		runtime "Debug"
 		symbols "on"
-		links { "../Engine/External/assimp/bin/Debug/assimp-vc141-mtd.lib" }
+		links { "../Engine/External/assimp/bin/Debug/assimp-vc142-mtd.lib" }
 
 	filter "configurations:Release"
 		defines "ME_RELEASE"
 		runtime "Release"
 		optimize "on"
-		links { "../Engine/External/assimp/bin/Release/assimp-vc141-mt.lib" }
+		links { "../Engine/External/assimp/bin/Release/assimp-vc142-mt.lib" }
 
 	filter "configurations:Production"
 		defines "ME_PRODUCTION"
 		runtime "Release"
 		optimize "on"
-		links { "../Engine/External/assimp/bin/Release/assimp-vc141-mt.lib" }
+		links { "../Engine/External/assimp/bin/Release/assimp-vc142-mt.lib" }

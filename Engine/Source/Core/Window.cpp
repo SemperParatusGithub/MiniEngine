@@ -15,8 +15,6 @@ namespace Engine
 		ME_ASSERT(success);
 		ME_INFO("Initialized GLFW");
 
-		glfwWindowHint(GLFW_SAMPLES, 16);
-
 		ME_INFO("Creating Window %s : %d, %d", title.c_str(), width, height);
 		m_WindowHandle = glfwCreateWindow(static_cast<int>(width), static_cast<int>(height),
 			title.c_str(), nullptr, nullptr);
@@ -64,6 +62,14 @@ namespace Engine
 	void Window::ClearEventBuffer()
 	{
 		m_EventBuffer.clear();
+	}
+
+	void Window::SetVSync(bool enabled)
+	{
+		if (enabled)
+			glfwSwapInterval(1);
+		else
+			glfwSwapInterval(0);
 	}
 
 	void Window::Maximize()

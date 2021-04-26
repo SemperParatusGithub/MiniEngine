@@ -16,31 +16,12 @@ Editor::~Editor()
 
 void Editor::OnCreate()
 {
-	float vertices[] = {
-	  // Position				Color
-		-0.5f, -0.5f, 0.0f,		0.0f, 0.0f, 
-		 0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 
-		 0.0f,  0.5f, 0.0f,		0.5f, 1.0f
-	};
-	u32 indices[] = {
-		0, 1, 2
-	};
-
-	Engine::PipelineLayout layout = {
-		{ "a_Position",  Engine::VertexFormat::Float3, false },
-		{ "a_TexCoords", Engine::VertexFormat::Float2, false }
-	};
-
-	auto shader = MakeShared<Engine::Shader>("Test.glsl");
-
-	auto vertexBuffer = MakeShared<Engine::VertexBuffer>(vertices, sizeof(vertices), Engine::BufferUsage::Static);
-	auto indexBuffer = MakeShared<Engine::IndexBuffer>(indices, sizeof(indices), Engine::IndexFormat::Uint32, Engine::BufferUsage::Static);
-
-	m_Pipeline.Create(layout, shader, vertexBuffer, indexBuffer);
-
 	m_GridShader = MakeShared<Engine::Shader>("Grid.glsl");
+	m_DamagedHelmentMesh = MakeShared<Engine::Mesh>("sponza_scene/scene.gltf");
 
-	m_TestTexture.Load("Brick.jpg");
+	auto &window = Application::GetInstance()->GetWindow();
+	window->Maximize();
+	window->SetVSync(false);
 }
 
 void Editor::OnDestroy()
@@ -52,37 +33,69 @@ void Editor::OnUpdate(float delta)
 	Engine::Renderer::SetClearColor(glm::vec4 { 0.7f, 0.7f, 0.7f, 1.0f });
 	Engine::Renderer::Clear();
 
+	auto &shader = m_DamagedHelmentMesh->GetShader();
+	shader->Bind();
+	shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
+	glm::mat4 meshTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * 
+		glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
+	Engine::Renderer::SubmitMesh(m_DamagedHelmentMesh, meshTransform);
+
 	m_GridShader->Bind();
 	m_GridShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-	glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
+	glm::mat4 gridTransform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
 		glm::scale(glm::mat4(1.0f), glm::vec3(10.0f));
-	m_GridShader->SetUniformMatrix4("u_Transform", transform);
-	m_GridShader->SetUniformFloat3("u_GridColor", glm::vec3(0.2f));
+	m_GridShader->SetUniformMatrix4("u_Transform", gridTransform);
+	m_GridShader->SetUniformFloat3("u_GridColor", glm::vec3(0.4f));
 	m_GridShader->SetUniformFloat("u_Segments", 40.0f);
 	Engine::Renderer::SubmitQuad(m_GridShader);
 
-	auto shader = m_Pipeline.GetShader();
-	shader->Bind();
-	shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-	shader->SetUniformInt("u_ProjectionView", 0);
-	m_TestTexture.Bind();
-	Engine::Renderer::SubmitPipeline(m_Pipeline);
+	auto *app = Application::GetInstance();
+	glViewport(0, 0, (int) app->GetWindow()->GetWidth(), (int) app->GetWindow()->GetHeight());
 }
 
 void Editor::OnEvent(Engine::Event &event)
 {
 	m_Camera.OnEvent(event);
-
-	if(event.type == Engine::EventType::WindowResized)
-	{
-		glViewport(0, 0, (int) event.window.size.x, (int) event.window.size.y);
-		m_Camera.OnResize((u32) event.window.size.x, (u32) event.window.size.y);
-	}
 }
 
 void Editor::OnImGui()
 {
-	ImGui::Begin("Test Window");
-	ImGui::Text("Hello World");
+	OnMeshGui(m_DamagedHelmentMesh);
+
+	static int val = 0;
+	static bool renderLines = false;
+	static float lineThickness = 1.0f;
+
+	ImGui::Begin("Debug");
+	ImGui::Text("Framerate: %.2f", ImGui::GetIO().Framerate);
+
+	if (ImGui::Checkbox("Render Lines", &renderLines))
+		Engine::Renderer::RenderLines(renderLines);
+	if (ImGui::SliderFloat("Line Thickness", &lineThickness, 0.1f, 10.0f))
+		Engine::Renderer::SetLineThickness(lineThickness);
+
+	ImGui::InputInt("ID", &val);
+	ImGui::Image((ImTextureID) val, ImVec2(128.0f, 128.0f));
+	ImGui::End();
+}
+
+void Editor::OnMeshGui(SharedPtr<Engine::Mesh> mesh)
+{
+	ImGui::Begin("Mesh Info");
+	ImGui::Text("Filepath: %s", mesh->GetFilepath().c_str());
+
+	static bool flip = false;
+	if (ImGui::Checkbox("Flip UVs", &flip))
+		mesh->SetFlipUVs(flip);
+
+	for (auto &material : mesh->GetMaterials())
+	{
+		std::string name = material.GetName().empty() ? "Unknown" : material.GetName();
+		if (ImGui::TreeNode(name.c_str()))
+		{
+			ImGui::TreePop();
+		}
+	}
+
 	ImGui::End();
 }

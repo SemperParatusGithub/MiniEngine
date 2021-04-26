@@ -75,8 +75,8 @@ project "Engine"
 		symbols "on"
 		postbuildcommands
 		{
-			'{COPY} "../../Engine/External/assimp/bin/Debug/assimp-vc141-mtd.dll" "%{cfg.targetdir}"',
-			'{COPY} "../../Engine/External/assimp/bin/Debug/assimp-vc141-mtd.lib" "%{cfg.targetdir}"'
+			'{COPY} "../../Engine/External/assimp/bin/Debug/assimp-vc142-mtd.dll" "%{cfg.targetdir}"',
+			'{COPY} "../../Engine/External/assimp/bin/Debug/assimp-vc142-mtd.lib" "%{cfg.targetdir}"'
 		}
 
 	filter "configurations:Release"
@@ -85,8 +85,8 @@ project "Engine"
 		optimize "on"
 		postbuildcommands
 		{
-			'{COPY} "../../Engine/External/assimp/bin/Release/assimp-vc141-mt.dll" "%{cfg.targetdir}"',
-			'{COPY} "../../Engine/External/assimp/bin/Release/assimp-vc141-mt.lib" "%{cfg.targetdir}"'
+			'{COPY} "../../Engine/External/assimp/bin/Release/assimp-vc142-mt.dll" "%{cfg.targetdir}"',
+			'{COPY} "../../Engine/External/assimp/bin/Release/assimp-vc142-mt.lib" "%{cfg.targetdir}"'
 		}
 
 	filter "configurations:Production"
@@ -95,6 +95,6 @@ project "Engine"
 		optimize "on"
 		postbuildcommands
 		{
-			'{COPY} "../../Engine/External/assimp/bin/Release/assimp-vc141-mt.dll" "%{cfg.targetdir}"',
-			'{COPY} "../../Engine/External/assimp/bin/Release/assimp-vc141-mt.lib" "%{cfg.targetdir}"'
+			'{COPY} "../../Engine/External/assimp/bin/Release/assimp-vc142-mt.dll" "%{cfg.targetdir}"',
+			'{COPY} "../../Engine/External/assimp/bin/Release/assimp-vc142-mt.lib" "%{cfg.targetdir}"'
 		}

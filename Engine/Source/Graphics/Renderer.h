@@ -8,6 +8,8 @@
 
 namespace Engine
 {
+	class Mesh;
+
 	class Renderer
 	{
 	public:
@@ -17,8 +19,13 @@ namespace Engine
 		static void Clear();
 		static void SetClearColor(const glm::vec4 &clearColor);
 
+		static void RenderLines(bool enable = true);
+		static void SetLineThickness(float thickness);
+
 		static void SubmitQuad(const SharedPtr<Shader> &shader);
-		static void SubmitLine(const glm::vec3 &from, const glm::vec3 &to, const glm::vec4 color, float thickness = 1.0f);
+		static void SubmitLine(const glm::vec3 &from, const glm::vec3 &to, const glm::vec4 color = glm::vec4(0.0f), float thickness = 1.0f);
+
+		static void SubmitMesh(const SharedPtr<Mesh> &mesh, const glm::mat4 &transform);
 
 		static void SubmitPipeline(const GraphicsPipeline &pipeline);
 	};

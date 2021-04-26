@@ -27,7 +27,10 @@ namespace Engine
 		RendererID m_RendererID;
 	};
 
-	enum class IndexFormat { Uint8, Uint16, Uint32 };
+	enum class IndexFormat
+	{ 
+		Uint8, Uint16, Uint32
+	};
 	class IndexBuffer
 	{
 	public:
@@ -76,28 +79,20 @@ namespace Engine
 	{
 	public:
 		GraphicsPipeline();
-		GraphicsPipeline(PipelineLayout layout, SharedPtr<Shader> shader,
-			SharedPtr<VertexBuffer> vertexBuffer, SharedPtr<IndexBuffer> indexBuffer);
-
 		~GraphicsPipeline();
 
-		void Create(PipelineLayout layout, SharedPtr<Shader> shader,
-			SharedPtr<VertexBuffer> vertexBuffer, SharedPtr<IndexBuffer> indexBuffer);
+		void Create();
 
 		void Bind() const;
 
-		SharedPtr<Shader> GetShader() { return m_Shader; }
+	public:
+		PipelineLayout layout;
+
+		SharedPtr<VertexBuffer> vertexBuffer;
+		SharedPtr<IndexBuffer> indexBuffer;
 
 	private:
 		friend class Renderer;
-
-		PipelineLayout m_Layout;
-
-		SharedPtr<Shader> m_Shader;
-
-		SharedPtr<VertexBuffer> m_VertexBuffer;
-		SharedPtr<IndexBuffer> m_IndexBuffer;
-
 		RendererID m_VertexArrayRendererID;
 	};
 }
