@@ -6,6 +6,8 @@
 #include "Graphics/Renderer.h"
 #include "Graphics/ImGuiHelper.h"
 
+#include <GLFW/glfw3.h>
+
 
 namespace Engine
 {
@@ -40,20 +42,20 @@ namespace Engine
 			m_Window->SwapBuffers();
 			m_Window->PollEvents();
 
+			float deltaTime = (float) glfwGetTime() - m_LastFrame;
+			m_LastFrame = (float) glfwGetTime();
+
 			for (auto &event : m_Window->GetEventBuffer())
 			{
 				if (event.type == EventType::WindowClosed)
 					m_Running = false;
-
-				// if (event.type == EventType::KeyPressed)
-				//	  ME_TRACE("Key Pressed: %d, Repeat Count: %d", event.key.code, event.key.repeatCount);
 
 				OnEvent(event);
 			}
 
 			m_Window->ClearEventBuffer();
 
-			OnUpdate(0.0f);
+			OnUpdate(deltaTime);
 
 			ImGuiHelper::BeginFrame();
 			OnImGui();

@@ -6,8 +6,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 
-Editor::Editor() : 
-	m_Camera(45.0f, 1.778f, 0.1f, 1000.0f)
+Editor::Editor(): 
+	m_Camera(Engine::CameraType::Orbit)
 {
 }
 Editor::~Editor()
@@ -17,7 +17,7 @@ Editor::~Editor()
 void Editor::OnCreate()
 {
 	m_GridShader = MakeShared<Engine::Shader>("Grid.glsl");
-	m_DamagedHelmentMesh = MakeShared<Engine::Mesh>("sponza_scene/scene.gltf");
+	m_TestMesh = MakeShared<Engine::Mesh>("sponza/sponza.obj");
 
 	auto &window = Application::GetInstance()->GetWindow();
 	window->Maximize();
@@ -30,15 +30,17 @@ void Editor::OnDestroy()
 
 void Editor::OnUpdate(float delta)
 {
+	m_Camera.OnUpdate(delta);
+
 	Engine::Renderer::SetClearColor(glm::vec4 { 0.7f, 0.7f, 0.7f, 1.0f });
 	Engine::Renderer::Clear();
 
-	auto &shader = m_DamagedHelmentMesh->GetShader();
+	auto &shader = m_TestMesh->GetShader();
 	shader->Bind();
 	shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
 	glm::mat4 meshTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * 
-		glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
-	Engine::Renderer::SubmitMesh(m_DamagedHelmentMesh, meshTransform);
+		glm::scale(glm::mat4(1.0f), glm::vec3(0.005f));
+	Engine::Renderer::SubmitMesh(m_TestMesh, meshTransform);
 
 	m_GridShader->Bind();
 	m_GridShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
@@ -60,9 +62,10 @@ void Editor::OnEvent(Engine::Event &event)
 
 void Editor::OnImGui()
 {
-	OnMeshGui(m_DamagedHelmentMesh);
+	OnMeshGui(m_TestMesh);
 
 	static int val = 0;
+	static bool fps = false;
 	static bool renderLines = false;
 	static float lineThickness = 1.0f;
 
@@ -74,6 +77,9 @@ void Editor::OnImGui()
 	if (ImGui::SliderFloat("Line Thickness", &lineThickness, 0.1f, 10.0f))
 		Engine::Renderer::SetLineThickness(lineThickness);
 
+	if (ImGui::Checkbox("fps", &fps))
+		m_Camera.SetCameraType(fps ? Engine::CameraType::FPS : Engine::CameraType::Orbit);
+
 	ImGui::InputInt("ID", &val);
 	ImGui::Image((ImTextureID) val, ImVec2(128.0f, 128.0f));
 	ImGui::End();
@@ -82,11 +88,11 @@ void Editor::OnImGui()
 void Editor::OnMeshGui(SharedPtr<Engine::Mesh> mesh)
 {
 	ImGui::Begin("Mesh Info");
-	ImGui::Text("Filepath: %s", mesh->GetFilepath().c_str());
-
-	static bool flip = false;
-	if (ImGui::Checkbox("Flip UVs", &flip))
-		mesh->SetFlipUVs(flip);
+	// ImGui::Text("Filepath: %s", mesh->GetFilepath().c_str());
+	// 
+	// static bool flip = false;
+	// if (ImGui::Checkbox("Flip UVs", &flip))
+	// 	mesh->SetFlipUVs(flip);
 
 	for (auto &material : mesh->GetMaterials())
 	{

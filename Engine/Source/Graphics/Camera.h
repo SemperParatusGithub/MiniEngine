@@ -7,17 +7,13 @@
 namespace Engine
 {
 	struct Event;
+	class EditorCamera;
 
-	class SceneCamera
-	{
-
-	};
-
-	class EditorCamera
+	class OrbitCamera
 	{
 	public:
-		EditorCamera(float fov, float aspectRatio, float nearClip, float farClip);
-		~EditorCamera();
+		OrbitCamera(float fov, float aspectRatio, float nearClip, float farClip);
+		~OrbitCamera();
 
 		void Rotate(const glm::vec2 &offset);
 		void Zoom(float offset);
@@ -52,12 +48,69 @@ namespace Engine
 		glm::vec2 m_InitialMousePosition = { 0.0f, 0.0f };
 
 		float m_Distance = 10.0f;
-		float m_Yaw = 0.0f, m_Pitch = -25.0f;
+		float m_Yaw = 0.0f, m_Pitch = glm::radians(45.0f);
 
 		float m_MovementSpeed = 1.0f;
 		float m_RotationSpeed = 0.005f;
 		float m_ZoomSpeed = 0.5f;
 
 		glm::vec2 m_PreviousMousePosition = { 0.0f, 0.0f };
+
+		friend class EditorCamera;
+	};
+
+	class FPSCamera
+	{
+	public:
+		FPSCamera(float fov, float aspectRatio, float nearClip, float farClip);
+		~FPSCamera();
+
+		void OnUpdate(float delta);
+		void OnEvent(Event &event);
+
+		const glm::mat4 &GetProjectionViewMatrix() const;
+
+	private:
+		void RecalculateCameraMatrices();
+
+	private:
+		float m_FOV, m_AspectRatio;		// Set in constructor
+		float m_NearClip, m_FarClip;
+
+		float m_Yaw = 0.0f, m_Pitch = 0.0f;
+
+		glm::vec3 m_Front, m_Right, m_Up;
+		glm::vec3 m_Position = { 0.0f, 5.0f, 0.0f };
+
+		glm::mat4 m_ProjectionViewMatrix = glm::mat4(1.0f);
+
+		glm::vec2 m_PreviousMousePosition = { 0.0f, 0.0f };
+
+		friend class EditorCamera;
+	};
+
+	enum class CameraType
+	{
+		Orbit = 0, FPS
+	};
+	class EditorCamera
+	{
+	public:
+		EditorCamera();
+		EditorCamera(CameraType type);
+		~EditorCamera();
+
+		void SetCameraType(CameraType type);
+		CameraType GetCameraType() const;
+
+		void OnUpdate(float delta);
+		void OnEvent(Event &event);
+		
+		const glm::mat4 &GetProjectionViewMatrix() const;
+
+	private:
+		CameraType m_CameraType;
+		OrbitCamera m_OrbitCamera;
+		FPSCamera m_FPSCamera;
 	};
 }

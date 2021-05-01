@@ -10,17 +10,13 @@ layout(location = 4) in vec2 a_TexCoord;
 uniform mat4 u_ProjectionView;
 uniform mat4 u_Transform;
 
-uniform bool u_FlipUVs;
 
 out vec2 v_TexCoords;
 
 
 void main()
 {
-	if(u_FlipUVs)
-		v_TexCoords = vec2(a_TexCoord.x, 1.0 - a_TexCoord.y);
-	else
-		v_TexCoords = vec2(a_TexCoord.x, a_TexCoord.y);
+	v_TexCoords = vec2(a_TexCoord.x, a_TexCoord.y);
 
 	gl_Position = u_ProjectionView * u_Transform * vec4(a_Position, 1.0);
 }
@@ -32,6 +28,7 @@ layout(location = 0) out vec4 o_Color;
 
 uniform bool u_UseAlbedoMap;
 uniform sampler2D u_AlbedoMap;
+
 
 in vec2 v_TexCoords;
 

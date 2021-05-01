@@ -12,7 +12,7 @@
 #endif
 
 // Logging
-#ifdef ME_DEBUG
+#if defined(ME_DEBUG) || defined(ME_RELEASE)
     #include <stdio.h>
     #define ME_TRACE(...) { printf("\033[1m\033[37m[TRACE]: "); printf(__VA_ARGS__); printf("\033[0m \n"); }
     #define ME_INFO(...)  { printf("\033[1m\033[32m[INFO]: ");  printf(__VA_ARGS__); printf("\033[0m \n"); }

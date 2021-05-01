@@ -24,5 +24,5 @@ public:
 private:
 	Engine::EditorCamera m_Camera;
 	SharedPtr<Engine::Shader> m_GridShader;
-	SharedPtr<Engine::Mesh> m_DamagedHelmentMesh;
+	SharedPtr<Engine::Mesh> m_TestMesh;
 };

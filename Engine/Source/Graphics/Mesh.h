@@ -1,23 +1,21 @@
 #pragma once
+
 #include "Core/EngineBase.h"
 
 #include "Material.h"
+#include "GraphicsPipeline.h"
 
-#include <vector>
-
-#include <glm/glm.hpp>
-
+#include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <assimp/Importer.hpp>
-#include <assimp/DefaultLogger.hpp>
-#include <assimp/LogStream.hpp>
+
+#include <iostream>
+#include <vector>
 
 
 namespace Engine
 {
-	class Renderer;
-	class GraphicsPipeline;
+	using Index = u32;
 
 	struct Vertex
 	{
@@ -28,58 +26,53 @@ namespace Engine
 		glm::vec2 texCoords;
 	};
 
-	class Submesh
+	struct SubMesh
 	{
-	public:
 		u32 vertexOffset, indexOffset;
 		u32 vertexCount, indexCount;
 		u32 materialIndex;
 		glm::mat4 transform;
 	};
 
-	using Index = u32;
-
-
 	class Mesh
 	{
 	public:
-		Mesh(const std::string &filepath);
 		Mesh();
-
+		Mesh(ConstRef<std::string> filepath);
 		~Mesh();
 
 		void Load(const std::string &filepath);
+
 		bool IsLoaded() const;
-
-		SharedPtr<Shader> GetShader();
-		const std::string &GetFilepath() const;
-
-		const std::vector<Material> &GetMaterials() const;
 		std::vector<Material> &GetMaterials();
+		std::vector<SubMesh> &GetSubMeshes();
 
-		void SetFlipUVs(bool flip);
+		SharedPtr<Shader> GetShader() { return m_Shader; }
+
+		auto begin() const noexcept { return m_SubMeshes.begin(); }
+		auto end() const noexcept { return m_SubMeshes.end(); }
 
 	private:
-		void ProcessNode(aiNode *node, const glm::mat4 &parentTransform = glm::mat4(1.0f));
-		void ProcessMesh(aiMesh *mesh, const glm::mat4 &transform);
-		void TraverseNodes(aiNode *node, const glm::mat4 &parentTransform = glm::mat4(1.0f), uint32_t level = 0);
+		void ProcessNode(aiNode *node, ConstRef<glm::mat4> parenTransform);
+		SubMesh ProcessMesh(aiMesh *mesh, ConstRef<glm::mat4> meshTransform);
+
+		void PreparePipeline();
 
 	private:
 		std::string m_Filepath;
 		bool m_IsLoaded;
-		bool m_FlipUVs;
+		std::vector<SubMesh> m_SubMeshes;
 
-		std::vector<Submesh> m_SubMeshes;
-		GraphicsPipeline m_Pipeline;
 		SharedPtr<Shader> m_Shader;
-
 		std::vector<Material> m_Materials;
+
+		const aiScene *m_Scene;
 
 		std::vector<Vertex> m_Vertices;
 		std::vector<Index> m_Indices;
 
-		const aiScene *m_Scene;
-		UniquePtr<Assimp::Importer> m_Importer;
+		// Pipeline
+		GraphicsPipeline m_Pipeline;
 
 		friend class Renderer;
 	};

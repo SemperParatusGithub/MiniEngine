@@ -29,5 +29,7 @@ namespace Engine
 	private:
 		bool m_Running;
 		UniquePtr<Window> m_Window;
+
+		float m_LastFrame = 0.0f;
 	};
 }

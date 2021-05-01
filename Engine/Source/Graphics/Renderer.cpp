@@ -83,25 +83,29 @@ namespace Engine
 
 	void Renderer::SubmitMesh(const SharedPtr<Mesh> &mesh, const glm::mat4 &transform)
 	{
-		mesh->m_Pipeline.Bind();
-		mesh->m_Shader->Bind();
-
+		auto &pipeline = mesh->m_Pipeline;
 		auto &shader = mesh->m_Shader;
-		shader->SetUniformInt("u_FlipUVs", mesh->m_FlipUVs);
 
-		for (auto &submesh : mesh->m_SubMeshes)
+		shader->Bind();
+		pipeline.Bind();
+
+		for (auto &subMesh : mesh->m_SubMeshes)
 		{
-			auto &material = mesh->m_Materials[submesh.materialIndex];
+			auto &material = mesh->m_Materials[subMesh.materialIndex];
 			auto &params = material.GetParameters();
 			auto &textures = material.GetTextures();
 
 			shader->SetUniformInt("u_UseAlbedoMap", textures.useAlbedo);
-			if(textures.albedo)
+			if (textures.albedo->IsLoaded())
+			{
+				shader->SetUniformInt("u_AlbedoMap", 0);
 				textures.albedo->Bind(0);
-			shader->SetUniformMatrix4("u_Transform", transform * submesh.transform);
-			shader->SetUniformInt("u_AlbedoMap", 0);
+			}
 
-			glDrawElementsBaseVertex(GL_TRIANGLES, submesh.indexCount, GL_UNSIGNED_INT, (void *) (sizeof(uint32_t) * submesh.indexOffset), submesh.vertexOffset);
+			shader->SetUniformMatrix4("u_Transform", transform * subMesh.transform);
+
+			glDrawElementsBaseVertex(GL_TRIANGLES, subMesh.indexCount, GL_UNSIGNED_INT,
+				(const void *) (sizeof(u32) * subMesh.indexOffset), subMesh.vertexOffset);
 		}
 	}
 
