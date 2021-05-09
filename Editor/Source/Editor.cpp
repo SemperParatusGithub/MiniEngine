@@ -17,7 +17,8 @@ Editor::~Editor()
 void Editor::OnCreate()
 {
 	m_GridShader = MakeShared<Engine::Shader>("Grid.glsl");
-	m_TestMesh = MakeShared<Engine::Mesh>("sponza/sponza.obj");
+	m_OutlineShader = MakeShared<Engine::Shader>("Outline.glsl");
+	m_TestMesh = MakeShared<Engine::Mesh>("DamagedHelmet/DamagedHelmet.gltf");
 
 	auto &window = Application::GetInstance()->GetWindow();
 	window->Maximize();
@@ -35,12 +36,43 @@ void Editor::OnUpdate(float delta)
 	Engine::Renderer::SetClearColor(glm::vec4 { 0.7f, 0.7f, 0.7f, 1.0f });
 	Engine::Renderer::Clear();
 
-	auto &shader = m_TestMesh->GetShader();
+	if (m_IsMeshSelected)
+		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+	Engine::Renderer::SetClearColor(glm::vec4{ 0.7f, 0.7f, 0.7f, 1.0f });
+	Engine::Renderer::Clear();
+
+	if (m_IsMeshSelected)
+		glStencilMask(0);
+
+	// Render Scene here
+
+	if (m_IsMeshSelected)
+	{
+		glStencilFunc(GL_ALWAYS, 1, 0xff);
+		glStencilMask(0xff);
+	}
+
+	// Render selected mesh
+	auto& shader = m_TestMesh->GetShader();
 	shader->Bind();
 	shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-	glm::mat4 meshTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * 
-		glm::scale(glm::mat4(1.0f), glm::vec3(0.005f));
-	Engine::Renderer::SubmitMesh(m_TestMesh, meshTransform);
+	Engine::Renderer::SubmitMesh(m_TestMesh, glm::mat4(1.0f));
+
+	if (m_IsMeshSelected)
+	{
+		glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+		glStencilMask(0x00);
+		glDisable(GL_DEPTH_TEST);
+
+		m_OutlineShader->Bind();
+		m_OutlineShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
+		Engine::Renderer::SubmitMeshWithShader(m_TestMesh, glm::scale(glm::mat4(1.0), glm::vec3(1.1f)), m_OutlineShader);
+
+		glStencilMask(0xff);
+		glStencilFunc(GL_ALWAYS, 0, 0xff);
+		glEnable(GL_DEPTH_TEST);
+	}
 
 	m_GridShader->Bind();
 	m_GridShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
@@ -58,6 +90,37 @@ void Editor::OnUpdate(float delta)
 void Editor::OnEvent(Engine::Event &event)
 {
 	m_Camera.OnEvent(event);
+
+	if (event.type == Engine::EventType::MouseButtonPressed &&
+		event.mouse.code == Engine::Mouse::ButtonLeft)
+	{
+		ME_INFO("Picking");
+		m_IsMeshSelected = false;
+
+		auto mouseRay = CastRay();
+
+		auto& subMeshes = m_TestMesh->GetSubMeshes();
+		for (u32 i = 0; i < subMeshes.size(); i++)
+		{
+			auto& subMesh = subMeshes[i];
+			glm::mat4 transform = glm::mat4(1.0f);
+
+			Engine::Ray ray = {
+				glm::inverse(transform * subMesh.transform) * glm::vec4(mouseRay.origin, 1.0f),
+				glm::inverse(glm::mat3(transform) * glm::mat3(subMesh.transform)) * mouseRay.direction
+			};
+
+			const auto& triangleMesh = m_TestMesh->GetTriangleRepresentation();
+			for (auto& triangle : triangleMesh)
+			{
+				if (Engine::Math::RayIntersectsTriangle(ray, triangle))
+				{
+					m_IsMeshSelected = true;
+					ME_INFO("Intersection");
+				}
+			}
+		}
+	}
 }
 
 void Editor::OnImGui()
@@ -70,6 +133,7 @@ void Editor::OnImGui()
 	static float lineThickness = 1.0f;
 
 	ImGui::Begin("Debug");
+	ImGui::Text("Mesh selected: %d", m_IsMeshSelected);
 	ImGui::Text("Framerate: %.2f", ImGui::GetIO().Framerate);
 
 	if (ImGui::Checkbox("Render Lines", &renderLines))
@@ -77,7 +141,7 @@ void Editor::OnImGui()
 	if (ImGui::SliderFloat("Line Thickness", &lineThickness, 0.1f, 10.0f))
 		Engine::Renderer::SetLineThickness(lineThickness);
 
-	if (ImGui::Checkbox("fps", &fps))
+	if (ImGui::Checkbox("FPS Camera", &fps))
 		m_Camera.SetCameraType(fps ? Engine::CameraType::FPS : Engine::CameraType::Orbit);
 
 	ImGui::InputInt("ID", &val);
@@ -88,20 +152,6 @@ void Editor::OnImGui()
 void Editor::OnMeshGui(SharedPtr<Engine::Mesh> mesh)
 {
 	ImGui::Begin("Mesh Info");
-	// ImGui::Text("Filepath: %s", mesh->GetFilepath().c_str());
-	// 
-	// static bool flip = false;
-	// if (ImGui::Checkbox("Flip UVs", &flip))
-	// 	mesh->SetFlipUVs(flip);
-
-	for (auto &material : mesh->GetMaterials())
-	{
-		std::string name = material.GetName().empty() ? "Unknown" : material.GetName();
-		if (ImGui::TreeNode(name.c_str()))
-		{
-			ImGui::TreePop();
-		}
-	}
 
 	ImGui::End();
 }

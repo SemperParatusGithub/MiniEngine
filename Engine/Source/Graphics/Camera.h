@@ -41,8 +41,7 @@ namespace Engine
 		glm::vec3 m_Position = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
 
-		glm::mat4 m_ProjectionMatrix;
-		glm::mat4 m_ViewMatrix;
+		glm::mat4 m_ProjectionMatrix, m_ViewMatrix;
 		glm::mat4 m_ProjectionViewMatrix;
 
 		glm::vec2 m_InitialMousePosition = { 0.0f, 0.0f };
@@ -77,11 +76,12 @@ namespace Engine
 		float m_FOV, m_AspectRatio;		// Set in constructor
 		float m_NearClip, m_FarClip;
 
-		float m_Yaw = 0.0f, m_Pitch = 0.0f;
+		float m_Yaw = 0.0f, m_Pitch = glm::radians(45.0f);
 
 		glm::vec3 m_Front, m_Right, m_Up;
-		glm::vec3 m_Position = { 0.0f, 5.0f, 0.0f };
+		glm::vec3 m_Position = { 0.0f, 2.0f, 0.0f };
 
+		glm::mat4 m_ProjectionMatrix, m_ViewMatrix;
 		glm::mat4 m_ProjectionViewMatrix = glm::mat4(1.0f);
 
 		glm::vec2 m_PreviousMousePosition = { 0.0f, 0.0f };
@@ -105,6 +105,11 @@ namespace Engine
 
 		void OnUpdate(float delta);
 		void OnEvent(Event &event);
+
+		const glm::vec3& GetPosition() const;
+
+		const glm::mat4& GetProjectionMatrix() const;
+		const glm::mat4& GetViewMatrix() const;
 		
 		const glm::mat4 &GetProjectionViewMatrix() const;
 

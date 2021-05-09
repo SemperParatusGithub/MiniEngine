@@ -123,9 +123,9 @@ namespace Engine
 			// Process mesh recursively
 			ProcessNode(m_Scene->mRootNode, glm::mat4(1.0f));
 
-			ME_INFO("Total sub meshes: %d", m_SubMeshes.size());
-			ME_INFO("Total mesh vertices: %d", m_Vertices.size());
-			ME_INFO("Total mesh indices: %d", m_Indices.size());
+			ME_TRACE("Total sub meshes: %d", m_SubMeshes.size());
+			ME_TRACE("Total mesh vertices: %d", m_Vertices.size());
+			ME_TRACE("Total mesh indices: %d", m_Indices.size());
 
 			ME_INFO("Preparing Pipeline");
 			PreparePipeline();
@@ -205,11 +205,24 @@ namespace Engine
 		}
 
 		// Indices
+		typedef struct { u32 v1, v2, v3; } TriangleInfo;
+		
 		for (uint32_t i = 0; i < mesh->mNumFaces; i++)
 		{
 			aiFace face = mesh->mFaces[i];
 
 			ME_ASSERT(face.mNumIndices == 3);
+
+			TriangleInfo currentTriangle;
+			currentTriangle = { mesh->mFaces[i].mIndices[0], mesh->mFaces[i].mIndices[1], mesh->mFaces[i].mIndices[2] };
+
+			// Triangles
+			Triangle triangle = {
+				m_Vertices[currentTriangle.v1 + subMesh.vertexOffset],
+				m_Vertices[currentTriangle.v2 + subMesh.vertexOffset],
+				m_Vertices[currentTriangle.v3 + subMesh.vertexOffset]
+			};
+			m_TriangleRepresentation.emplace_back(triangle);
 
 			for (uint32_t j = 0; j < face.mNumIndices; j++)
 				m_Indices.push_back(face.mIndices[j]);
@@ -219,80 +232,79 @@ namespace Engine
 		subMesh.vertexCount = m_Vertices.size() - subMesh.vertexOffset;
 		subMesh.indexCount = m_Indices.size() - subMesh.indexOffset;
 
-
 		// Materials
-		aiMaterial *aiMaterial = m_Scene->mMaterials[mesh->mMaterialIndex];
-
-		u32 materialIndex = m_Materials.size();
-		std::string materialName = aiMaterial->GetName().C_Str();
-		bool materialFound = false;
-
-		for (int i = 0; i < m_Materials.size(); i++)
 		{
-			if (m_Materials[i].GetName() == materialName)
+			aiMaterial* aiMaterial = m_Scene->mMaterials[mesh->mMaterialIndex];
+
+			u32 materialIndex = m_Materials.size();
+			std::string materialName = aiMaterial->GetName().C_Str();
+			bool materialFound = false;
+
+			for (int i = 0; i < m_Materials.size(); i++)
 			{
-				materialIndex = i;
-				materialFound = true;
-			}
-		}
-
-		if (!materialFound)
-		{
-			Material subMaterial(materialName);
-
-			aiColor3D aiColor;
-			aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor);
-
-			float shininess, metalness, roughness;
-			if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS)
-				shininess = 80.0f; // Default value
-
-			if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
-				metalness = 0.0f;
-
-			roughness = 1.0f - glm::sqrt(shininess / 100.0f);
-
-			PBRMaterialParameters params = {
-				glm::vec3(aiColor.r, aiColor.g, aiColor.b),	// Albedo
-				metalness,									// Metalness	
-				roughness									// Roughness
-			};
-
-			ME_INFO("Mesh Debug Info: %s: AlbedoColor: %.2f, %.2f, %.2f", aiMaterial->GetName().C_Str(), aiColor.r, aiColor.g, aiColor.b);
-			ME_INFO("Mesh Debug Info: %s: Metalness: %.2f", aiMaterial->GetName().C_Str(), metalness);
-			ME_INFO("Mesh Debug Info: %s: Roughness: %.2f", aiMaterial->GetName().C_Str(), roughness);
-
-			subMaterial.GetParameters() = params;
-
-			// TODO: Normal, metalness and roughness maps
-			PBRMaterialTextures textures = {
-				MakeShared<Texture>(), false,
-				MakeShared<Texture>(), false,
-				MakeShared<Texture>(), false,
-				MakeShared<Texture>(), false
-			};
-
-			aiString aiTexturePath;
-			if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexturePath) == AI_SUCCESS)
-			{
-				std::filesystem::path path = m_Filepath;
-				auto parentPath = path.parent_path();
-				parentPath /= std::string(aiTexturePath.data);
-				std::string texturePath = parentPath.string();
-				ME_INFO("Albedo Texture filepath = %s", texturePath.c_str());
-				auto texture = MakeShared<Texture>(texturePath, true);
-				textures.albedo = texture;
-				if (texture->IsLoaded())
-					textures.useAlbedo = true;
+				if (m_Materials[i].GetName() == materialName)
+				{
+					materialIndex = i;
+					materialFound = true;
+				}
 			}
 
-			subMaterial.GetTextures() = textures;
+			if (!materialFound)
+			{
+				Material subMaterial(materialName);
+
+				aiColor3D aiColor;
+				aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor);
+
+				float shininess, metalness, roughness;
+				if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS)
+					shininess = 80.0f; // Default value
+
+				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
+					metalness = 0.0f;
+
+				roughness = 1.0f - glm::sqrt(shininess / 100.0f);
+
+				subMaterial.GetParameters() = {
+					glm::vec3(aiColor.r, aiColor.g, aiColor.b),	// Albedo
+					metalness,									// Metalness	
+					roughness									// Roughness
+				};
+
+				ME_TRACE("Mesh Debug Info: %s: AlbedoColor: %.2f, %.2f, %.2f", aiMaterial->GetName().C_Str(), aiColor.r, aiColor.g, aiColor.b);
+				ME_TRACE("Mesh Debug Info: %s: Metalness: %.2f", aiMaterial->GetName().C_Str(), metalness);
+				ME_TRACE("Mesh Debug Info: %s: Roughness: %.2f", aiMaterial->GetName().C_Str(), roughness);
+
+				// TODO: Normal, metalness and roughness maps
+				PBRMaterialTextures textures = {
+					MakeShared<Texture>(), false,
+					MakeShared<Texture>(), false,
+					MakeShared<Texture>(), false,
+					MakeShared<Texture>(), false
+				};
+
+				aiString aiTexturePath;
+				if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexturePath) == AI_SUCCESS)
+				{
+					std::filesystem::path path = m_Filepath;
+					auto parentPath = path.parent_path();
+					parentPath /= std::string(aiTexturePath.data);
+					std::string texturePath = parentPath.string();
+					ME_INFO("Albedo Texture filepath = %s", texturePath.c_str());
+					auto texture = MakeShared<Texture>(texturePath, true);
+					textures.albedo = texture;
+					if (texture->IsLoaded())
+						textures.useAlbedo = true;
+				}
+
+				subMaterial.GetTextures() = textures;
 
 
-			m_Materials.push_back(subMaterial);
+				m_Materials.push_back(subMaterial);
+			}
+
+			subMesh.materialIndex = materialIndex;
 		}
-
-		subMesh.materialIndex = materialIndex;
 
 		return subMesh;
 	}

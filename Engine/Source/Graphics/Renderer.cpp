@@ -51,7 +51,7 @@ namespace Engine
 
 	void Renderer::Clear()
 	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
 	void Renderer::SetClearColor(const glm::vec4 &clearColor)
 	{
@@ -106,6 +106,22 @@ namespace Engine
 
 			glDrawElementsBaseVertex(GL_TRIANGLES, subMesh.indexCount, GL_UNSIGNED_INT,
 				(const void *) (sizeof(u32) * subMesh.indexOffset), subMesh.vertexOffset);
+		}
+	}
+
+	void Renderer::SubmitMeshWithShader(const SharedPtr<Mesh>& mesh, const glm::mat4& transform, const SharedPtr<Shader>& shader)
+	{
+		auto& pipeline = mesh->m_Pipeline;
+
+		shader->Bind();
+		pipeline.Bind();
+
+		for (auto& subMesh : mesh->m_SubMeshes)
+		{
+			shader->SetUniformMatrix4("u_Transform", transform * subMesh.transform);
+
+			glDrawElementsBaseVertex(GL_TRIANGLES, subMesh.indexCount, GL_UNSIGNED_INT,
+				(const void*)(sizeof(u32) * subMesh.indexOffset), subMesh.vertexOffset);
 		}
 	}
 

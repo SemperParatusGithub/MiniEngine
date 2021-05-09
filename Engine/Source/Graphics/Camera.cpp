@@ -180,11 +180,10 @@ namespace Engine
 		m_Right = glm::normalize(glm::cross(m_Front, worldUp));
 		m_Up = glm::normalize(glm::cross(m_Right, m_Front));
 
-		glm::mat4 projection = glm::perspective(glm::radians(m_FOV), m_AspectRatio, m_NearClip, m_FarClip);
-		glm::mat4 view = glm::lookAt(m_Position, m_Position + m_Front, m_Up);
-		//view = glm::inverse(view);
+		m_ProjectionMatrix = glm::perspective(glm::radians(m_FOV), m_AspectRatio, m_NearClip, m_FarClip);
+		m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_Front, m_Up);
 
-		m_ProjectionViewMatrix = projection * view;
+		m_ProjectionViewMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
 	// ----------------------------------- Editor Camera -----------------------------------
@@ -226,6 +225,29 @@ namespace Engine
 	{
 		if (m_CameraType == CameraType::FPS)
 			m_FPSCamera.OnUpdate(delta);
+	}
+
+	const glm::vec3& EditorCamera::GetPosition() const
+	{
+		if (m_CameraType == CameraType::Orbit)
+			return m_OrbitCamera.m_Position;
+		else
+			return m_FPSCamera.m_Position;
+	}
+
+	const glm::mat4& EditorCamera::GetProjectionMatrix() const
+	{
+		if (m_CameraType == CameraType::Orbit)
+			return m_OrbitCamera.m_ProjectionMatrix;
+		else
+			return m_FPSCamera.m_ProjectionMatrix;
+	}
+	const glm::mat4& EditorCamera::GetViewMatrix() const
+	{
+		if (m_CameraType == CameraType::Orbit)
+			return m_OrbitCamera.m_ViewMatrix;
+		else
+			return m_FPSCamera.m_ViewMatrix;
 	}
 	void EditorCamera::OnEvent(Event &event)
 	{

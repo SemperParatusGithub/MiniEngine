@@ -26,6 +26,11 @@ namespace Engine
 		glm::vec2 texCoords;
 	};
 
+	struct Triangle
+	{
+		Vertex v1, v2, v3;
+	};
+
 	struct SubMesh
 	{
 		u32 vertexOffset, indexOffset;
@@ -52,6 +57,11 @@ namespace Engine
 		auto begin() const noexcept { return m_SubMeshes.begin(); }
 		auto end() const noexcept { return m_SubMeshes.end(); }
 
+		const std::vector<Triangle>& GetTriangleRepresentation() const
+		{
+			return m_TriangleRepresentation;
+		}
+
 	private:
 		void ProcessNode(aiNode *node, ConstRef<glm::mat4> parenTransform);
 		SubMesh ProcessMesh(aiMesh *mesh, ConstRef<glm::mat4> meshTransform);
@@ -70,6 +80,8 @@ namespace Engine
 
 		std::vector<Vertex> m_Vertices;
 		std::vector<Index> m_Indices;
+
+		std::vector<Triangle> m_TriangleRepresentation;
 
 		// Pipeline
 		GraphicsPipeline m_Pipeline;
