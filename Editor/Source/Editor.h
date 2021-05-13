@@ -16,8 +16,6 @@ public:
 	virtual void OnEvent(Engine::Event &event) override;
 	virtual void OnImGui() override;
 
-	static void OnMeshGui(SharedPtr<Engine::Mesh> mesh);
-
 	static Engine::Application *Create()
 	{
 		return new Editor();
@@ -26,14 +24,11 @@ public:
 private:
 	Engine::Ray CastRay()
 	{
-		auto& window = Engine::Application::GetWindow();
-		auto viewportWidth = window->GetWidth();
-		auto viewportHeight = window->GetHeight();
-		auto mx = Engine::Input::GetMousePosition().x;
-		auto my = Engine::Input::GetMousePosition().y;
+		auto mx = ImGui::GetMousePos().x - m_ViewportPosition.x;
+		auto my = ImGui::GetMousePos().y - m_ViewportPosition.y;
 
-		float mouseX = (mx / viewportWidth) * 2.0f - 1.0f;
-		float mouseY = ((my / viewportHeight) * 2.0f - 1.0f) * -1.0f;
+		float mouseX = (mx / m_ViewportSize.x) * 2.0f - 1.0f;
+		float mouseY = ((my / m_ViewportSize.y) * 2.0f - 1.0f) * -1.0f;
 
 		glm::vec4 mouseClipPos = { mouseX, mouseY, -1.0f, 1.0f };
 
@@ -48,6 +43,15 @@ private:
 	}
 
 private:
+	glm::vec2 m_ViewportPosition = { 0.0f, 0.0f };
+	glm::vec2 m_ViewportSize = { 1280.0f, 720.0f };
+	bool m_ViewportSizeChanged = false;
+
+	bool m_ViewportHovered = false;
+	bool m_ViewportFocused = false;
+
+private:
+	SharedPtr<Engine::Framebuffer> m_Framebuffer;
 	Engine::EditorCamera m_Camera;
 	SharedPtr<Engine::Shader> m_GridShader;
 	SharedPtr<Engine::Shader> m_OutlineShader;

@@ -32,6 +32,13 @@ namespace Engine
 		glEnable(GL_STENCIL_TEST);
 		//glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
+		// glEnable(GL_CULL_FACE);
+		// glCullFace(GL_BACK);
+		// glFrontFace(GL_CCW);
+
+		glEnable(GL_DEBUG_OUTPUT);
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
 		SetEventCallbacks();
 	}
 	Window::~Window()
@@ -80,6 +87,13 @@ namespace Engine
 		glfwMaximizeWindow(m_WindowHandle);
 	}
 
+	const glm::vec2& Window::GetPosition() const
+	{
+		int xPos, yPos;
+		glfwGetWindowPos(m_WindowHandle, &xPos, &yPos);
+		return { (float)xPos, (float)yPos };
+	}
+
 	u32 Window::GetWidth() const
 	{
 		int width, height;
@@ -107,17 +121,17 @@ namespace Engine
 				switch (severity)
 				{
 				case GL_DEBUG_SEVERITY_HIGH:
-					ME_ERROR("[OpenGL Debug HIGH] %s", message);
-					ME_ASSERT(false);
+					ME_ERROR("[OpenGL Debug HIGH]: %s", message);
+					// ME_ASSERT(false);
 					break;
 				case GL_DEBUG_SEVERITY_MEDIUM:
-					ME_WARN("[OpenGL Debug MEDIUM] %s", message);
+					ME_WARN("[OpenGL Debug MEDIUM]: %s", message);
 					break;
 				case GL_DEBUG_SEVERITY_LOW:
-					ME_WARN("[OpenGL Debug LOW] %s", message);
+					ME_WARN("[OpenGL Debug LOW]: %s", message);
 					break;
 				case GL_DEBUG_SEVERITY_NOTIFICATION:
-					ME_INFO("[OpenGL Debug NOTIFICATION] %s", message);
+					//ME_INFO("[OpenGL Debug NOTIFICATION]: %s", message);
 					break;
 				}
 			}, nullptr);

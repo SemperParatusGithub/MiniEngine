@@ -62,7 +62,7 @@ namespace Engine
 	}
 	void OrbitCamera::OnResize(u32 width, u32 height)
 	{
-		m_AspectRatio = width / height;
+		m_AspectRatio = width / (height + 0.001f);
 
 		RecalculateCameraMatrices();
 	}
@@ -161,6 +161,13 @@ namespace Engine
 		RecalculateCameraMatrices();
 	}
 
+	void FPSCamera::OnResize(u32 width, u32 height)
+	{
+		m_AspectRatio = width / (height + 0.001f);
+
+		RecalculateCameraMatrices();
+	}
+
 	const glm::mat4 &FPSCamera::GetProjectionViewMatrix() const
 	{
 		return m_ProjectionViewMatrix;
@@ -227,6 +234,22 @@ namespace Engine
 			m_FPSCamera.OnUpdate(delta);
 	}
 
+	void EditorCamera::OnEvent(Event& event)
+	{
+		if (m_CameraType == CameraType::Orbit)
+			m_OrbitCamera.OnEvent(event);
+		else
+			m_FPSCamera.OnEvent(event);
+	}
+
+	void EditorCamera::OnResize(u32 width, u32 height)
+	{
+		if (m_CameraType == CameraType::Orbit)
+			m_OrbitCamera.OnResize(width, height);
+		else
+			m_FPSCamera.OnResize(width, height);
+	}
+
 	const glm::vec3& EditorCamera::GetPosition() const
 	{
 		if (m_CameraType == CameraType::Orbit)
@@ -248,13 +271,6 @@ namespace Engine
 			return m_OrbitCamera.m_ViewMatrix;
 		else
 			return m_FPSCamera.m_ViewMatrix;
-	}
-	void EditorCamera::OnEvent(Event &event)
-	{
-		if (m_CameraType == CameraType::Orbit)
-			m_OrbitCamera.OnEvent(event);
-		else
-			m_FPSCamera.OnEvent(event);
 	}
 
 	const glm::mat4 &EditorCamera::GetProjectionViewMatrix() const

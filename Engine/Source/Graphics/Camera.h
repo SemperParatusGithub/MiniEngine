@@ -66,6 +66,7 @@ namespace Engine
 
 		void OnUpdate(float delta);
 		void OnEvent(Event &event);
+		void OnResize(u32 width, u32 height);
 
 		const glm::mat4 &GetProjectionViewMatrix() const;
 
@@ -105,6 +106,7 @@ namespace Engine
 
 		void OnUpdate(float delta);
 		void OnEvent(Event &event);
+		void OnResize(u32 width, u32 height);
 
 		const glm::vec3& GetPosition() const;
 
