@@ -3,6 +3,7 @@
 #include <Glad/glad.h>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 
@@ -18,20 +19,30 @@ void Editor::OnCreate()
 {
 	m_GridShader = MakeShared<Engine::Shader>("Grid.glsl");
 	m_OutlineShader = MakeShared<Engine::Shader>("Outline.glsl");
+	m_CompositionShader = MakeShared<Engine::Shader>("Composition.glsl");
+
 	m_TestMesh = MakeShared<Engine::Mesh>("DamagedHelmet/DamagedHelmet.gltf");
 
 	auto &window = Application::GetInstance()->GetWindow();
 	window->Maximize();
 	window->SetVSync(false);
 
-	m_Framebuffer = MakeShared<Engine::Framebuffer>(1280, 720);
-	m_Framebuffer->multisampled = false;
-	m_Framebuffer->samples = 8;
-	m_Framebuffer->attachments = {
+	m_MainFramebuffer = MakeShared<Engine::Framebuffer>(1280, 720);
+	m_MainFramebuffer->multisampled = true;
+	m_MainFramebuffer->samples = 8;
+	m_MainFramebuffer->attachments = {
 		Engine::FramebufferTextureFormat::RGBA8,
 		Engine::FramebufferTextureFormat::DEPTH24STENCIL8
 	};
-	m_Framebuffer->Create();
+	m_MainFramebuffer->Create();
+
+	m_FinalFramebuffer = MakeShared<Engine::Framebuffer>(1280, 720);
+	m_FinalFramebuffer->multisampled = false;
+	m_FinalFramebuffer->attachments = {
+		Engine::FramebufferTextureFormat::RGBA8,
+		Engine::FramebufferTextureFormat::DEPTH24STENCIL8
+	};
+	m_FinalFramebuffer->Create();
 }
 
 void Editor::OnDestroy()
@@ -49,10 +60,116 @@ void Editor::OnUpdate(float delta)
 	if (m_ViewportSizeChanged)
 	{
 		m_Camera.OnResize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
-		m_Framebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
+		m_MainFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
+		m_FinalFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
 		m_ViewportSizeChanged = false;
 	}
-	m_Framebuffer->Bind();
+
+	MainRenderPass();
+
+	CompositionRenderPass();
+}
+
+void Editor::OnEvent(Engine::Event &event)
+{
+	m_Camera.OnEvent(event);
+
+	if (event.type == Engine::EventType::MouseButtonPressed &&
+		event.mouse.code == Engine::Mouse::ButtonLeft)
+	{
+		m_IsMeshSelected = false;
+
+		auto mouseRay = CastRay();
+
+		auto& subMeshes = m_TestMesh->GetSubMeshes();
+		for (u32 i = 0; i < subMeshes.size(); i++)
+		{
+			auto& subMesh = subMeshes[i];
+			glm::mat4 transform = glm::mat4(1.0f);
+
+			Engine::Ray ray = {
+				glm::inverse(transform * subMesh.transform) * glm::vec4(mouseRay.origin, 1.0f),
+				glm::inverse(glm::mat3(transform) * glm::mat3(subMesh.transform)) * mouseRay.direction
+			};
+
+			const auto& triangleMesh = m_TestMesh->GetTriangleRepresentation();
+			for (auto& triangle : triangleMesh)
+			{
+				if (Engine::Math::RayIntersectsTriangle(ray, triangle))
+				{
+					m_IsMeshSelected = true;
+				}
+			}
+		}
+	}
+}
+
+void Editor::OnImGui()
+{
+	BeginDockspace();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+	ImGui::Begin("Viewport");
+
+	m_ViewportFocused = ImGui::IsWindowFocused();
+	m_ViewportHovered = ImGui::IsWindowHovered();
+
+	m_ViewportPosition = {
+		ImGui::GetWindowPos().x + ImGui::GetCursorPos().x,
+		ImGui::GetWindowPos().y + ImGui::GetCursorPos().y
+	};
+	glm::vec2 newViewportSize = {
+		ImGui::GetWindowSize().x - ImGui::GetCursorPos().x,
+		ImGui::GetWindowSize().y - ImGui::GetCursorPos().y
+	};
+	if (newViewportSize != m_ViewportSize) {
+		m_ViewportSize = newViewportSize;
+		m_ViewportSizeChanged = true;
+	}
+
+	if(m_MainFramebuffer->multisampled)
+		ImGui::Image((ImTextureID) m_FinalFramebuffer->GetColorAttachmentRendererID(), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+	else
+		ImGui::Image((ImTextureID)m_MainFramebuffer->GetColorAttachmentRendererID(), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+
+	ImGui::End();
+	ImGui::PopStyleVar();
+
+	ImGui::Begin("Debug");
+	ImGui::Text("Mesh selected: %d", m_IsMeshSelected);
+	ImGui::Text("Framerate: %.2f FPS", ImGui::GetIO().Framerate);
+	ImGui::Text("Frametime: %.2f ms", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
+
+	static bool renderLines = false;
+	if (ImGui::Checkbox("Render Lines", &renderLines))
+		Engine::Renderer::RenderLines(renderLines);
+
+	static float lineThickness = 1.0f;
+	if (ImGui::SliderFloat("Line Thickness", &lineThickness, 0.1f, 10.0f))
+		Engine::Renderer::SetLineThickness(lineThickness);
+
+	static bool enableMSAA = false;
+	if (ImGui::Checkbox("MSAA", &enableMSAA))
+	{
+		m_MainFramebuffer->multisampled = enableMSAA;
+		m_MainFramebuffer->Create();
+	}
+
+	static int samples = 4;
+	if (ImGui::SliderInt("Samples", &samples, 2, 32))
+	{
+		m_MainFramebuffer->samples = samples;
+		m_MainFramebuffer->Create();
+	}
+
+	ImGui::End();
+
+	EndDockspace();
+}
+
+void Editor::MainRenderPass()
+{
+	m_MainFramebuffer->Bind();
 	if (m_IsMeshSelected)
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
@@ -104,80 +221,47 @@ void Editor::OnUpdate(float delta)
 	m_GridShader->SetUniformFloat("u_Segments", 40.0f);
 	Engine::Renderer::SubmitQuad(m_GridShader);
 
-	m_Framebuffer->UnBind();
+	m_MainFramebuffer->UnBind();
 }
 
-void Editor::OnEvent(Engine::Event &event)
+void Editor::CompositionRenderPass()
 {
-	m_Camera.OnEvent(event);
+	m_FinalFramebuffer->Bind();
+	m_CompositionShader->Bind();
 
-	if (event.type == Engine::EventType::MouseButtonPressed &&
-		event.mouse.code == Engine::Mouse::ButtonLeft)
-	{
-		m_IsMeshSelected = false;
+	m_CompositionShader->SetUniformInt("u_Texture", 0);
+	m_CompositionShader->SetUniformInt("u_TextureSamples", m_MainFramebuffer->samples);
+	glBindTextureUnit(0, m_MainFramebuffer->GetColorAttachmentRendererID());
 
-		auto mouseRay = CastRay();
+	Engine::Renderer::Clear();
+	Engine::Renderer::SubmitQuad(m_CompositionShader);
 
-		auto& subMeshes = m_TestMesh->GetSubMeshes();
-		for (u32 i = 0; i < subMeshes.size(); i++)
-		{
-			auto& subMesh = subMeshes[i];
-			glm::mat4 transform = glm::mat4(1.0f);
-
-			Engine::Ray ray = {
-				glm::inverse(transform * subMesh.transform) * glm::vec4(mouseRay.origin, 1.0f),
-				glm::inverse(glm::mat3(transform) * glm::mat3(subMesh.transform)) * mouseRay.direction
-			};
-
-			const auto& triangleMesh = m_TestMesh->GetTriangleRepresentation();
-			for (auto& triangle : triangleMesh)
-			{
-				if (Engine::Math::RayIntersectsTriangle(ray, triangle))
-				{
-					m_IsMeshSelected = true;
-				}
-			}
-		}
-	}
+	m_FinalFramebuffer->UnBind();
 }
 
-void Editor::OnImGui()
+void Editor::BeginDockspace()
 {
-	static bool renderLines = false;
-	static float lineThickness = 1.0f;
+	ImGuiWindowFlags dockSpaceWindowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-	ImGui::Begin("Viewport");
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->Pos);
+	ImGui::SetNextWindowSize(viewport->Size);
+	ImGui::SetNextWindowViewport(viewport->ID);
 
-	m_ViewportFocused = ImGui::IsWindowFocused();
-	m_ViewportHovered = ImGui::IsWindowHovered();
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::Begin("DockSpace", 0, dockSpaceWindowFlags);
+	ImGui::PopStyleVar(3);
 
-	m_ViewportPosition = {
-		ImGui::GetWindowPos().x + ImGui::GetCursorPos().x,
-		ImGui::GetWindowPos().y + ImGui::GetCursorPos().y
-	};
-	glm::vec2 newViewportSize = {
-		ImGui::GetWindowSize().x,
-		ImGui::GetWindowSize().y
-	};
-	if (newViewportSize != m_ViewportSize) {
-		m_ViewportSize = newViewportSize;
-		m_ViewportSizeChanged = true;
-	}
+	ImGuiID dockSpaceID = ImGui::GetID("DockSpace");
 
-	ImGui::Image((ImTextureID)m_Framebuffer->GetColorAttachmentRendererID(), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-	ImGui::End();
-	ImGui::PopStyleVar();
+	// Dockspace
+	ImGui::DockSpace(dockSpaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_NoCloseButton | ImGuiDockNodeFlags_NoWindowMenuButton);
+}
 
-	ImGui::Begin("Debug");
-	ImGui::Text("Mesh selected: %d", m_IsMeshSelected);
-	ImGui::Text("Framerate: %.2f FPS", ImGui::GetIO().Framerate);
-	ImGui::Text("Frametime: %.2f ms", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
-
-	if (ImGui::Checkbox("Render Lines", &renderLines))
-		Engine::Renderer::RenderLines(renderLines);
-	if (ImGui::SliderFloat("Line Thickness", &lineThickness, 0.1f, 10.0f))
-		Engine::Renderer::SetLineThickness(lineThickness);
-
+void Editor::EndDockspace()
+{
 	ImGui::End();
 }

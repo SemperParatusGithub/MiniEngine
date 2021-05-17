@@ -22,6 +22,12 @@ public:
 	}
 
 private:
+	void MainRenderPass();
+	void CompositionRenderPass();
+
+	void BeginDockspace();
+	void EndDockspace();
+
 	Engine::Ray CastRay()
 	{
 		auto mx = ImGui::GetMousePos().x - m_ViewportPosition.x;
@@ -51,10 +57,14 @@ private:
 	bool m_ViewportFocused = false;
 
 private:
-	SharedPtr<Engine::Framebuffer> m_Framebuffer;
+	SharedPtr<Engine::Framebuffer> m_MainFramebuffer;
+	SharedPtr<Engine::Framebuffer> m_FinalFramebuffer;
 	Engine::EditorCamera m_Camera;
+
 	SharedPtr<Engine::Shader> m_GridShader;
 	SharedPtr<Engine::Shader> m_OutlineShader;
+	SharedPtr<Engine::Shader> m_CompositionShader;
+
 	SharedPtr<Engine::Mesh> m_TestMesh;
 	bool m_IsMeshSelected = false;
 };
