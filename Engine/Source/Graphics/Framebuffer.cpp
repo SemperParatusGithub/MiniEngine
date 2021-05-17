@@ -101,14 +101,9 @@ namespace Engine
 			}
 		}
 
-		for (u32 i = 0; i < m_ColorAttachments.size(); i++)
-		{
-			glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
-		}
-		if (m_DepthAttachments.empty())
-		{
-			glDrawBuffer(GL_NONE);
-		}
+		if(m_ColorAttachments.size() > 1)
+			for (u32 i = 0; i < m_ColorAttachments.size(); i++)
+				glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
 
 		ME_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);	// Framebuffer incomplete
 

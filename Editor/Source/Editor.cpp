@@ -39,8 +39,7 @@ void Editor::OnCreate()
 	m_FinalFramebuffer = MakeShared<Engine::Framebuffer>(1280, 720);
 	m_FinalFramebuffer->multisampled = false;
 	m_FinalFramebuffer->attachments = {
-		Engine::FramebufferTextureFormat::RGBA8,
-		Engine::FramebufferTextureFormat::DEPTH24STENCIL8
+		Engine::FramebufferTextureFormat::RGBA8
 	};
 	m_FinalFramebuffer->Create();
 }
@@ -108,6 +107,29 @@ void Editor::OnImGui()
 {
 	BeginDockspace();
 
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("New", "Ctrl+N"));
+			if (ImGui::MenuItem("Open...", "Ctrl+O"));
+			if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"));
+			if (ImGui::MenuItem("Exit"));
+
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Settings"))
+		{
+			if (ImGui::MenuItem("Option 1"));
+			if (ImGui::MenuItem("Option 2"));
+			if (ImGui::MenuItem("Option 3"));
+			if (ImGui::MenuItem("Option 4"));
+
+			ImGui::EndMenu();
+		}
+		ImGui::EndMenuBar();
+	}
+
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 	ImGui::Begin("Viewport");
 
@@ -127,10 +149,7 @@ void Editor::OnImGui()
 		m_ViewportSizeChanged = true;
 	}
 
-	if(m_MainFramebuffer->multisampled)
-		ImGui::Image((ImTextureID) m_FinalFramebuffer->GetColorAttachmentRendererID(), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-	else
-		ImGui::Image((ImTextureID)m_MainFramebuffer->GetColorAttachmentRendererID(), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+	ImGui::Image((ImTextureID) m_FinalFramebuffer->GetColorAttachmentRendererID(), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 
 	ImGui::End();
 	ImGui::PopStyleVar();
@@ -149,11 +168,7 @@ void Editor::OnImGui()
 		Engine::Renderer::SetLineThickness(lineThickness);
 
 	static bool enableMSAA = false;
-	if (ImGui::Checkbox("MSAA", &enableMSAA))
-	{
-		m_MainFramebuffer->multisampled = enableMSAA;
-		m_MainFramebuffer->Create();
-	}
+	ImGui::Checkbox("MSAA", &enableMSAA);
 
 	static int samples = 4;
 	if (ImGui::SliderInt("Samples", &samples, 2, 32))
@@ -228,14 +243,14 @@ void Editor::CompositionRenderPass()
 {
 	m_FinalFramebuffer->Bind();
 	m_CompositionShader->Bind();
-
+	
 	m_CompositionShader->SetUniformInt("u_Texture", 0);
 	m_CompositionShader->SetUniformInt("u_TextureSamples", m_MainFramebuffer->samples);
 	glBindTextureUnit(0, m_MainFramebuffer->GetColorAttachmentRendererID());
-
+	
 	Engine::Renderer::Clear();
 	Engine::Renderer::SubmitQuad(m_CompositionShader);
-
+	
 	m_FinalFramebuffer->UnBind();
 }
 
