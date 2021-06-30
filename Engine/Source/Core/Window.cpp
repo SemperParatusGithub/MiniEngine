@@ -122,7 +122,7 @@ namespace Engine
 				{
 				case GL_DEBUG_SEVERITY_HIGH:
 					ME_ERROR("[OpenGL Debug HIGH]: %s", message);
-					// ME_ASSERT(false);
+					ME_ASSERT(false);
 					break;
 				case GL_DEBUG_SEVERITY_MEDIUM:
 					ME_WARN("[OpenGL Debug MEDIUM]: %s", message);

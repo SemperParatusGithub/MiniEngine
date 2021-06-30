@@ -65,6 +65,13 @@ private:
 	SharedPtr<Engine::Shader> m_OutlineShader;
 	SharedPtr<Engine::Shader> m_CompositionShader;
 
+	SharedPtr<Engine::Shader> m_PBRShader;
+
 	SharedPtr<Engine::Mesh> m_TestMesh;
 	bool m_IsMeshSelected = false;
+
+	bool m_RenderLines = false;
+
+	bool m_EnableTonemapping = true;
+	float m_Exposure = 1.0f;
 };

@@ -95,12 +95,12 @@ namespace Engine
 			auto &params = material.GetParameters();
 			auto &textures = material.GetTextures();
 
-			shader->SetUniformInt("u_UseAlbedoMap", textures.useAlbedo);
-			if (textures.albedo->IsLoaded())
-			{
-				shader->SetUniformInt("u_AlbedoMap", 0);
-				textures.albedo->Bind(0);
-			}
+			//shader->SetUniformInt("u_UseAlbedoMap", textures.useAlbedo);
+			//if (textures.albedo->IsLoaded())
+			//{
+			//	shader->SetUniformInt("u_AlbedoMap", 0);
+			//	textures.albedo->Bind(0);
+			//}
 
 			shader->SetUniformMatrix4("u_Transform", transform * subMesh.transform);
 

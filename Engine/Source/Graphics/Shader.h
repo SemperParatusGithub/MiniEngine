@@ -27,6 +27,8 @@ namespace Engine
 		u32 CreateShader(const std::string &vertexShader, const std::string &fragmentShader);
 		u32 TryCompileShader(u32 shaderType, const std::string &shaderSource, std::string &errorLog);
 
+		int GetUniformLocation(const std::string& name);
+
 	private:
 		RendererID m_RendererID;
 	};

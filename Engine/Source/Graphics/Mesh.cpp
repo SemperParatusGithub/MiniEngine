@@ -324,6 +324,6 @@ namespace Engine
 
 		m_Pipeline.Create();
 
-		m_Shader = MakeShared<Shader>("Mesh.glsl");
+		m_Shader = MakeShared<Shader>("PBR.glsl");
 	}
 }

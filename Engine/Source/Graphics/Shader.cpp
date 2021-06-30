@@ -17,8 +17,10 @@ namespace Engine
     {
     }
 
-    void Shader::LoadFromFile(const std::string &filepath)
+    void Shader::LoadFromFile(const std::string & filepath)
     {
+        ME_TRACE("Loading Shader: %s", filepath.c_str());
+
         std::ifstream stream(filepath);
 
         enum class ShaderType
@@ -62,20 +64,20 @@ namespace Engine
 
     void Shader::SetUniformMatrix4(const char *name, const glm::mat4 &matrix)
     {
-        glUniformMatrix4fv(glGetUniformLocation(m_RendererID, name), 1, GL_FALSE, &matrix[0][0]);
+        glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, &matrix[0][0]);
     }
     void Shader::SetUniformFloat(const char *name, float value)
     {
-        glUniform1f(glGetUniformLocation(m_RendererID, name), value);
+        glUniform1f(GetUniformLocation(name), value);
     }
     void Shader::SetUniformFloat3(const char *name, const glm::vec3 &values)
     {
-        glUniform3f(glGetUniformLocation(m_RendererID, name), values.x, values.y, values.z);
+        glUniform3f(GetUniformLocation(name), values.x, values.y, values.z);
     }
 
     void Shader::SetUniformInt(const char *name, int value)
     {
-        glUniform1i(glGetUniformLocation(m_RendererID, name), value);
+        glUniform1i(GetUniformLocation(name), value);
     }
 
     u32 Shader::CreateShader(const std::string &vertexShader, const std::string &fragmentShader)
@@ -137,5 +139,15 @@ namespace Engine
             return 0;
         }
         return shaderID;
+    }
+
+    int Shader::GetUniformLocation(const std::string& name)
+    {
+        int loc = glGetUniformLocation(m_RendererID, name.c_str());
+        if (loc == -1){
+            ME_WARN("Uniform %s not found", name.c_str());
+        ME_BREAKDEBUGGER;
+        }
+        return loc;
     }
 }

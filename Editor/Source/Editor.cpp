@@ -21,7 +21,10 @@ void Editor::OnCreate()
 	m_OutlineShader = MakeShared<Engine::Shader>("Outline.glsl");
 	m_CompositionShader = MakeShared<Engine::Shader>("Composition.glsl");
 
-	m_TestMesh = MakeShared<Engine::Mesh>("DamagedHelmet/DamagedHelmet.gltf");
+	m_PBRShader = MakeShared<Engine::Shader>("PBR.glsl");
+
+	//m_TestMesh = MakeShared<Engine::Mesh>("DamagedHelmet/DamagedHelmet.gltf");
+	m_TestMesh = MakeShared<Engine::Mesh>("Sphere.fbx");
 
 	auto &window = Application::GetInstance()->GetWindow();
 	window->Maximize();
@@ -159,9 +162,7 @@ void Editor::OnImGui()
 	ImGui::Text("Framerate: %.2f FPS", ImGui::GetIO().Framerate);
 	ImGui::Text("Frametime: %.2f ms", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
 
-	static bool renderLines = false;
-	if (ImGui::Checkbox("Render Lines", &renderLines))
-		Engine::Renderer::RenderLines(renderLines);
+	ImGui::Checkbox("Render Lines", &m_RenderLines);
 
 	static float lineThickness = 1.0f;
 	if (ImGui::SliderFloat("Line Thickness", &lineThickness, 0.1f, 10.0f))
@@ -177,6 +178,11 @@ void Editor::OnImGui()
 		m_MainFramebuffer->Create();
 	}
 
+	ImGui::Separator();
+
+	ImGui::Checkbox("Tonemapping", &m_EnableTonemapping);
+	ImGui::SliderFloat("Exposure", &m_Exposure, 0.1f, 10.0f);
+
 	ImGui::End();
 
 	EndDockspace();
@@ -185,6 +191,10 @@ void Editor::OnImGui()
 void Editor::MainRenderPass()
 {
 	m_MainFramebuffer->Bind();
+
+	if (m_RenderLines)
+		Engine::Renderer::RenderLines();
+
 	if (m_IsMeshSelected)
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
@@ -195,37 +205,83 @@ void Editor::MainRenderPass()
 		glStencilMask(0);
 
 	// Render Scene here
-	auto& shader2 = m_TestMesh->GetShader();
-	shader2->Bind();
-	shader2->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-	Engine::Renderer::SubmitMesh(m_TestMesh, glm::translate(glm::mat4(1.0f), glm::vec3(4.0f, 0.0f, 0.0f)));
-
-	if (m_IsMeshSelected)
-	{
-		glStencilFunc(GL_ALWAYS, 1, 0xff);
-		glStencilMask(0xff);
-	}
-
-	// Render selected mesh
 	auto& shader = m_TestMesh->GetShader();
 	shader->Bind();
 	shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-	Engine::Renderer::SubmitMesh(m_TestMesh, glm::mat4(1.0f));
+	shader->SetUniformFloat3("u_CameraPosition", m_Camera.GetPosition());
 
-	if (m_IsMeshSelected)
+	shader->SetUniformFloat3("u_AlbedoColor", glm::vec3(0.8f, 0.1f, 0.15f));
+
+	shader->SetUniformInt("u_EnableAlbedoTexture", 0);
+	shader->SetUniformInt("u_EnableNormalMapTexture", 0);
+	shader->SetUniformInt("u_EnableMetalnessTexture", 0);
+	shader->SetUniformInt("u_EnableRoughnessTexture", 0);
+
+	shader->SetUniformInt("u_DirectionalLights[0].Active", 1);
+	shader->SetUniformFloat3("u_DirectionalLights[0].Direction", glm::vec3(glm::radians(30.0f), glm::radians(20.0f), 0.0f));
+	shader->SetUniformFloat3("u_DirectionalLights[0].Radiance", glm::vec3(1.0f));
+	shader->SetUniformFloat("u_DirectionalLights[0].Multiplier", 1.0f);
+
+	shader->SetUniformInt("u_DirectionalLights[1].Active", 0);
+	shader->SetUniformInt("u_DirectionalLights[2].Active", 0);
+	shader->SetUniformInt("u_DirectionalLights[3].Active", 0);
+
+	for (int i = 0; i < 10; i++)
 	{
-		glStencilFunc(GL_NOTEQUAL, 1, 0xff);
-		glStencilMask(0x00);
-		glDisable(GL_DEPTH_TEST);
-
-		m_OutlineShader->Bind();
-		m_OutlineShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-		Engine::Renderer::SubmitMeshWithShader(m_TestMesh, glm::scale(glm::mat4(1.0), glm::vec3(1.05f)), m_OutlineShader);
-
-		glStencilMask(0xff);
-		glStencilFunc(GL_ALWAYS, 0, 0xff);
-		glEnable(GL_DEPTH_TEST);
+		for (int j = 0; j < 10; j++)
+		{
+			shader->SetUniformFloat("u_Metalness", i / 10.0f);
+			shader->SetUniformFloat("u_Roughness", j / 10.0f);
+			Engine::Renderer::SubmitMesh(m_TestMesh, glm::translate(glm::mat4(1.0f), glm::vec3(i * 1.2f - 6.0f, j * 1.2f + 2.0f, 0.0f)));
+		}
 	}
+
+	// Render selected mesh
+	//if (m_IsMeshSelected)
+	//{
+	//	glStencilFunc(GL_ALWAYS, 1, 0xff);
+	//	glStencilMask(0xff);
+	//}
+	//
+	//shader->Bind();
+	//shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
+	//shader->SetUniformFloat3("u_AlbedoColor", glm::vec3(1.0f, 0.1f, 0.2f));
+	//shader->SetUniformFloat("u_Metalness", 0.7f);
+	//shader->SetUniformFloat("u_Roughness", 0.2f);
+	//
+	//shader->SetUniformInt("u_EnableAlbedoTexture", 0);
+	//shader->SetUniformInt("u_EnableNormalMapTexture", 0);
+	//shader->SetUniformInt("u_EnableMetalnessTexture", 0);
+	//shader->SetUniformInt("u_EnableRoughnessTexture", 0);
+	//
+	//shader->SetUniformInt("u_DirectionalLights[0].Active", 1);
+	//shader->SetUniformFloat3("u_DirectionalLights[0].Direction", glm::vec3(glm::radians(30.0f), glm::radians(20.0f), 0.0f));
+	//shader->SetUniformFloat3("u_DirectionalLights[0].Radiance", glm::vec3(1.0f));
+	//shader->SetUniformFloat("u_DirectionalLights[0].Multiplier", 1.0f);
+	//
+	//shader->SetUniformInt("u_DirectionalLights[1].Active", 0);
+	//shader->SetUniformInt("u_DirectionalLights[2].Active", 0);
+	//shader->SetUniformInt("u_DirectionalLights[3].Active", 0);
+	//
+	//Engine::Renderer::SubmitMesh(m_TestMesh, glm::mat4(1.0f));
+	//
+	//if (m_IsMeshSelected)
+	//{
+	//	glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+	//	glStencilMask(0x00);
+	//	glDisable(GL_DEPTH_TEST);
+	//
+	//	m_OutlineShader->Bind();
+	//	m_OutlineShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
+	//	Engine::Renderer::SubmitMeshWithShader(m_TestMesh, glm::scale(glm::mat4(1.0), glm::vec3(1.05f)), m_OutlineShader);
+	//
+	//	glStencilMask(0xff);
+	//	glStencilFunc(GL_ALWAYS, 0, 0xff);
+	//	glEnable(GL_DEPTH_TEST);
+	//}
+
+	if (m_RenderLines)
+		Engine::Renderer::RenderLines(false);
 
 	m_GridShader->Bind();
 	m_GridShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
@@ -246,6 +302,8 @@ void Editor::CompositionRenderPass()
 	
 	m_CompositionShader->SetUniformInt("u_Texture", 0);
 	m_CompositionShader->SetUniformInt("u_TextureSamples", m_MainFramebuffer->samples);
+	m_CompositionShader->SetUniformInt("u_EnableTonemapping", m_EnableTonemapping);
+	m_CompositionShader->SetUniformFloat("u_Exposure", m_Exposure);
 	glBindTextureUnit(0, m_MainFramebuffer->GetColorAttachmentRendererID());
 	
 	Engine::Renderer::Clear();
