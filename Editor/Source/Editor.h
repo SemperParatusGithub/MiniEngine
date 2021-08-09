@@ -57,6 +57,12 @@ private:
 	bool m_ViewportFocused = false;
 
 private:
+	SharedPtr<Engine::TextureCube> m_RadianceMap;
+	SharedPtr<Engine::TextureCube> m_IrradianceMap;
+	SharedPtr<Engine::Texture> m_BRDFLUTImage;
+
+	SharedPtr<Engine::Shader> m_SkyboxShader;
+
 	SharedPtr<Engine::Framebuffer> m_MainFramebuffer;
 	SharedPtr<Engine::Framebuffer> m_FinalFramebuffer;
 	Engine::EditorCamera m_Camera;
@@ -74,4 +80,6 @@ private:
 
 	bool m_EnableTonemapping = true;
 	float m_Exposure = 1.0f;
+
+	RendererID skyboxVAO;
 };

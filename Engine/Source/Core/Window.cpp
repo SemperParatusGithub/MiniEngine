@@ -36,6 +36,8 @@ namespace Engine
 		// glCullFace(GL_BACK);
 		// glFrontFace(GL_CCW);
 
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 
@@ -233,6 +235,14 @@ namespace Engine
 				event.type = EventType::MouseScrolled;
 				event.mouse.offset = { static_cast<float>(xOffset), static_cast<float>(yOffset) };
 				eventQueue.push_back(event);
+			});
+
+		glfwSetDropCallback(m_WindowHandle, [](GLFWwindow* window, int pathCount, const char* paths[])
+			{
+				ME_INFO("[FileDropEvent]: ");
+
+				for (int i = 0; i < pathCount; i++)
+					ME_INFO(" %s", paths[i]);
 			});
 	}
 }

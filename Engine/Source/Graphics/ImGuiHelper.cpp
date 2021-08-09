@@ -41,7 +41,7 @@ namespace Engine
 		ImGui_ImplOpenGL3_Init("#version 450");
 
 		// Load Fonts
-		io.Fonts->AddFontFromFileTTF("OpenSans-Regular.ttf", 22);
+		io.Fonts->AddFontFromFileTTF("Assets/Fonts/OpenSans-Regular.ttf", 22);
 
 		// Setup imgui style
 		style.WindowPadding = ImVec2(15, 15);

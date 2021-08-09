@@ -25,21 +25,21 @@ namespace Engine
 
         enum class ShaderType
         {
-            NONE = -1, VERTEX = 0, FRAGMENT = 1
+            None = -1, Vertex = 0, Fragment
         };
 
         std::string line;
         std::stringstream ss[2];
-        ShaderType type = ShaderType::NONE;
+        ShaderType type = ShaderType::None;
 
         while (std::getline(stream, line))
         {
             if (line.find("#shader") != std::string::npos)
             {
-                if (line.find("vertex") != std::string::npos)
-                    type = ShaderType::VERTEX;
+                if (line.find("vertex") != std::string::npos) 
+                    type = ShaderType::Vertex;
                 else if (line.find("fragment") != std::string::npos)
-                    type = ShaderType::FRAGMENT;
+                    type = ShaderType::Fragment;
             }
             else
             {
@@ -47,8 +47,8 @@ namespace Engine
             }
         }
 
-        std::string vertexSource = ss[(int) ShaderType::VERTEX].str();
-        std::string fragmentSource = ss[(int) ShaderType::FRAGMENT].str();
+        std::string vertexSource = ss[(int) ShaderType::Vertex].str();
+        std::string fragmentSource = ss[(int) ShaderType::Fragment].str();
 
         m_RendererID = CreateShader(vertexSource, fragmentSource);
     }
@@ -131,8 +131,7 @@ namespace Engine
             char *message = new char[errorLength * sizeof(char)];
             glGetShaderInfoLog(shaderID, errorLength, &errorLength, message);
 
-            errorLog = "Failed to compile" + std::string((shaderType == GL_VERTEX_SHADER) ? "vertex" : "fragment") +
-                " shader: \n" + std::string(message);
+            errorLog = "Failed to compile shader" + std::string(message);
 
             glDeleteShader(shaderType);
             delete[] message;
@@ -146,8 +145,34 @@ namespace Engine
         int loc = glGetUniformLocation(m_RendererID, name.c_str());
         if (loc == -1){
             ME_WARN("Uniform %s not found", name.c_str());
-        ME_BREAKDEBUGGER;
+            ME_BREAKDEBUGGER;
         }
         return loc;
+    }
+
+    ComputeShader::ComputeShader(const std::string& filepath)
+    {
+        std::ifstream is(filepath);
+        std::stringstream ss;
+        ss << is.rdbuf();
+        std::string shaderSource = ss.str();
+
+        m_RendererID = glCreateProgram();
+
+        std::string errorLog;
+
+        u32 computeProgram = TryCompileShader(GL_COMPUTE_SHADER, shaderSource, errorLog);
+        if (!computeProgram)
+        {
+            ME_ERROR("%s", errorLog.c_str());
+            ME_ASSERT(false);
+        }
+
+        glAttachShader(m_RendererID, computeProgram);
+
+        glLinkProgram(m_RendererID);
+        glValidateProgram(m_RendererID);
+
+        glDeleteShader(computeProgram);
     }
 }

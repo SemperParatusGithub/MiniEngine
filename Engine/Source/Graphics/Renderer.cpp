@@ -23,10 +23,10 @@ namespace Engine
 		ME_INFO("Initializing Renderer");
 
 		float vertices[] = {
-			-1.0f, -1.0f, 0.0f,		0.0f, 0.0f,
-			 1.0f, -1.0f, 0.0f,		1.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f,		1.0f, 1.0f,
-			-1.0f,  1.0f, 0.0f,		0.0f, 1.0f
+			-1.0f, -1.0f, 0.1f,		0.0f, 0.0f,
+			 1.0f, -1.0f, 0.1f,		1.0f, 0.0f,
+			 1.0f,  1.0f, 0.1f,		1.0f, 1.0f,
+			-1.0f,  1.0f, 0.1f,		0.0f, 1.0f
 		};
 		u32 indices[] = {
 			0, 1, 2, 2, 3, 0
