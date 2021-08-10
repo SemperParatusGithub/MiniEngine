@@ -1,7 +1,7 @@
 #shader vertex
 #version 450
 
-// PBR Shader in SemperEngine (under development)
+// PBR Shader in MiniEngine (under development)
 //  Ressources:
 //  - joey de vries (learnopengl):  https://learnopengl.com/PBR
 //  - TheCherno     (Hazel Engine): https://github.com/TheCherno/Hazel
@@ -39,10 +39,11 @@ void main()
 }
 
 #shader fragment
-#version 430
+#version 450
 
 const float PI = 3.141592;
 const float Epsilon = 0.00001;
+
 
 // Constant normal incidence Fresnel factor for all dielectrics.
 const vec3 Fdielectric = vec3(0.04);
@@ -89,6 +90,10 @@ uniform sampler2D u_MetalnessTexture;
 uniform bool u_EnableRoughnessTexture;
 uniform sampler2D u_RoughnessTexture;
 
+uniform sampler2D u_BRDFLUTTexture;
+
+uniform samplerCube u_EnvIrradianceTex;
+uniform samplerCube u_EnvRadianceTex;
 
 struct PBRParameters
 {
@@ -162,10 +167,34 @@ vec3 ApplyLighting(vec3 F0)
 	return result;
 }
 
+float Convert_sRGB_FromLinear(float theLinearValue)
+{
+	return theLinearValue <= 0.0031308f
+		? theLinearValue * 12.92f
+		: pow(theLinearValue, 1.0f / 2.4f) * 1.055f - 0.055f;
+}
+
 vec3 ApplyIBL(vec3 F0, vec3 Lr)
 {
 	// TODO: Replace with proper IBL
-	return vec3(0.03) * m_Params.Albedo;
+	// return vec3(0.03) * m_Params.Albedo;
+
+	vec3 irradiance = texture(u_EnvIrradianceTex, m_Params.Normal).rgb;
+	vec3 F = fresnelSchlickRoughness(F0, m_Params.NdotV, m_Params.Roughness);
+	vec3 kd = (1.0 - F) * (1.0 - m_Params.Metalness);
+	vec3 diffuseIBL = kd * m_Params.Albedo * irradiance;
+
+	int envRadianceTexLevels = textureQueryLevels(u_EnvRadianceTex);
+	float NoV = clamp(m_Params.NdotV, 0.0, 1.0);
+	vec3 R = 2.0 * dot(m_Params.View, m_Params.Normal) * m_Params.Normal - m_Params.View;
+	vec3 specularIrradiance = textureLod(u_EnvRadianceTex, Lr, (m_Params.Roughness) * envRadianceTexLevels).rgb;
+	//specularIrradiance = vec3(Convert_sRGB_FromLinear(specularIrradiance.r), Convert_sRGB_FromLinear(specularIrradiance.g), Convert_sRGB_FromLinear(specularIrradiance.b));
+
+	// Sample BRDF Lut, 1.0 - roughness for y-coord because texture was generated (in Sparky) for gloss model
+	vec2 specularBRDF = texture(u_BRDFLUTTexture, vec2(m_Params.NdotV, 1.0 - m_Params.Roughness)).rg;
+	vec3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
+
+	return diffuseIBL + specularIBL;
 }
 
 void main()

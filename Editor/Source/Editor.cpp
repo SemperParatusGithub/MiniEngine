@@ -8,6 +8,8 @@
 
 #include <stb_image/stb_image.h>
 
+#include <GLFW/glfw3.h>
+
 
 unsigned int cubeVAO = 0;
 unsigned int cubeVBO = 0;
@@ -174,9 +176,49 @@ void Editor::OnCreate()
 	ME_INFO("Computation finished");
 
 	// TODO: Filter environment map and create irradiance map for ibl
-	m_RadianceMap = environmentTextureCube;
+	SharedPtr<Engine::ComputeShader> environmentFilteringShader = MakeShared<Engine::ComputeShader>("Assets/Shaders/EnvironmentFiltering.compute.glsl");
+	SharedPtr<Engine::TextureCube> filteredEnvironmentTextureCube = MakeShared<Engine::TextureCube>(1024, 1024);
+
+	glCopyImageSubData(environmentTextureCube->GetRendererID(), GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,
+		filteredEnvironmentTextureCube->GetRendererID(), GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,
+		filteredEnvironmentTextureCube->GetWidth(), filteredEnvironmentTextureCube->GetHeight(), 6);
+
+	environmentFilteringShader->Bind();
+	environmentTextureCube->Bind(1);
+
+	const float deltaRoughness = 1.0f / glm::max(float(filteredEnvironmentTextureCube->GetMipLevelCount()) - 1.0f, 1.0f);
+	for (uint32_t level = 1, size = cubemapSize / 2; level < filteredEnvironmentTextureCube->GetMipLevelCount(); level++, size /= 2) // <= ?
+	{
+		glBindImageTexture(0, filteredEnvironmentTextureCube->GetRendererID(), level, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+		const GLint roughnessUniformLocation = glGetUniformLocation(environmentFilteringShader->GetRendererID(), "u_Roughness");
+		ME_ASSERT(roughnessUniformLocation != -1);
+		glUniform1f(roughnessUniformLocation, (float)level * deltaRoughness);
+
+		const GLuint numGroups = glm::max(1u, size / 32);
+		glDispatchCompute(numGroups, numGroups, 6);
+		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	}
+
+
+	SharedPtr<Engine::ComputeShader> envIrradianceShader = MakeShared<Engine::ComputeShader>("Assets/Shaders/EnvironmentIrradiance.compute.glsl");
+
+	SharedPtr<Engine::TextureCube> irradianceMap = MakeShared<Engine::TextureCube>(irradianceMapSize, irradianceMapSize);
+	envIrradianceShader->Bind();
+	filteredEnvironmentTextureCube->Bind(1);
+
+	glBindImageTexture(0, irradianceMap->GetRendererID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+	glDispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
+	glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glGenerateTextureMipmap(irradianceMap->GetRendererID());
+
+	m_RadianceMap = filteredEnvironmentTextureCube;
+	m_IrradianceMap = irradianceMap;
 
 	m_SkyboxShader = MakeShared<Engine::Shader>("Assets/Shaders/Skybox.glsl");
+
+	m_BRDFLUTImage = MakeShared<Engine::Texture>("Assets/Textures/BRDF.tga");
 
 	float skyboxVertices[] = {
 		// positions          
@@ -231,6 +273,8 @@ void Editor::OnCreate()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	m_RoundedCube = MakeShared<Engine::Mesh>("Assets/Meshes/RoundedCube.fbx");
 }
 
 void Editor::OnDestroy()
@@ -368,6 +412,7 @@ void Editor::OnImGui()
 
 	ImGui::Checkbox("Tonemapping", &m_EnableTonemapping);
 	ImGui::SliderFloat("Exposure", &m_Exposure, 0.1f, 10.0f);
+	ImGui::SliderFloat("m_TextureLod", &m_TextureLod, 0.0f, 1.0f);
 
 	ImGui::End();
 
@@ -412,6 +457,14 @@ void Editor::MainRenderPass()
 	shader->SetUniformInt("u_DirectionalLights[2].Active", 0);
 	shader->SetUniformInt("u_DirectionalLights[3].Active", 0);
 
+	shader->SetUniformInt("u_BRDFLUTTexture", 5);
+	shader->SetUniformInt("u_EnvRadianceTex", 6);
+	shader->SetUniformInt("u_EnvIrradianceTex", 7);
+
+	m_BRDFLUTImage->Bind(5);
+	m_RadianceMap->Bind(6);
+	m_IrradianceMap->Bind(7);
+
 	for (int i = 0; i < 10; i++)
 	{
 		for (int j = 0; j < 10; j++)
@@ -421,6 +474,11 @@ void Editor::MainRenderPass()
 			Engine::Renderer::SubmitMesh(m_TestMesh, glm::translate(glm::mat4(1.0f), glm::vec3(i * 1.2f - 6.0f, j * 1.2f - 6.0f, 0.0f)));
 		}
 	}
+
+	shader->SetUniformFloat3("u_AlbedoColor", glm::vec3(0.972f, 0.960f, 0.915f));
+	shader->SetUniformFloat("u_Metalness", 1.0f);
+	shader->SetUniformFloat("u_Roughness", 0.0f);
+	Engine::Renderer::SubmitMeshWithShader(m_RoundedCube, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f)) * glm::rotate(glm::mat4(1.0f), (float) glfwGetTime(), glm::vec3(0.0f,1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)), shader);
 
 	if (m_RenderLines)
 		Engine::Renderer::RenderLines(false);
@@ -442,6 +500,7 @@ void Editor::MainRenderPass()
 	m_SkyboxShader->SetUniformMatrix4("u_Projection", m_Camera.GetProjectionMatrix());
 	m_SkyboxShader->SetUniformMatrix4("u_View", view);
 	m_SkyboxShader->SetUniformInt("u_ImageCube", 0);
+	m_SkyboxShader->SetUniformFloat("u_TextureLod", m_TextureLod);
 
 	m_RadianceMap->Bind(0);
 

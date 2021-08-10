@@ -74,6 +74,7 @@ private:
 	SharedPtr<Engine::Shader> m_PBRShader;
 
 	SharedPtr<Engine::Mesh> m_TestMesh;
+	SharedPtr<Engine::Mesh> m_RoundedCube;
 	bool m_IsMeshSelected = false;
 
 	bool m_RenderLines = false;
@@ -82,4 +83,6 @@ private:
 	float m_Exposure = 1.0f;
 
 	RendererID skyboxVAO;
+
+	float m_TextureLod = 0.0f;
 };
