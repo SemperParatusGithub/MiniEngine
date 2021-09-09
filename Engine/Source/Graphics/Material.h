@@ -18,7 +18,7 @@ namespace Engine
 		SharedPtr<Texture> metalness;
 		bool useMetalness = false;
 
-		SharedPtr<Texture> rougness;
+		SharedPtr<Texture> roughness;
 		bool useRoughness = false;
 	};
 	struct PBRMaterialParameters

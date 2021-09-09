@@ -11,6 +11,7 @@ namespace Engine
 		switch (textureFormat)
 		{
 			case FramebufferTextureFormat::RGBA8: return GL_RGBA8;
+			case FramebufferTextureFormat::RGBA32F: return GL_RGBA32F;
 			case FramebufferTextureFormat::DEPTH24STENCIL8: return GL_DEPTH24_STENCIL8;
 		}
 
@@ -23,6 +24,7 @@ namespace Engine
 		switch (textureFormat)
 		{
 			case FramebufferTextureFormat::RGBA8: return GL_UNSIGNED_BYTE;
+			case FramebufferTextureFormat::RGBA32F: return GL_FLOAT;
 			case FramebufferTextureFormat::DEPTH24STENCIL8: return GL_UNSIGNED_INT_24_8;
 		}
 
@@ -35,6 +37,7 @@ namespace Engine
 		switch (textureFormat)
 		{
 			case FramebufferTextureFormat::RGBA8: return GL_COLOR_ATTACHMENT0;
+			case FramebufferTextureFormat::RGBA32F: return GL_COLOR_ATTACHMENT0;
 			case FramebufferTextureFormat::DEPTH24STENCIL8: return GL_DEPTH_STENCIL_ATTACHMENT;
 		}
 

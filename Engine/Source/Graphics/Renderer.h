@@ -3,12 +3,13 @@
 
 #include <glm/glm.hpp>
 
-#include "GraphicsPipeline.h"
-
 
 namespace Engine
 {
+	class GraphicsPipeline;
+	class Shader;
 	class Mesh;
+	class TextureCube;
 
 	class Renderer
 	{
@@ -16,8 +17,10 @@ namespace Engine
 		static void Initialize();
 		static void Shutdown();
 
+		static SharedPtr<Shader> GetShader(const std::string &name);
+
 		static void Clear();
-		static void SetClearColor(const glm::vec4 &clearColor);
+	 	static void SetClearColor(const glm::vec4 &clearColor);
 
 		static void RenderLines(bool enable = true);
 		static void SetLineThickness(float thickness);
@@ -27,6 +30,8 @@ namespace Engine
 
 		static void SubmitMesh(const SharedPtr<Mesh> &mesh, const glm::mat4 &transform);
 		static void SubmitMeshWithShader(const SharedPtr<Mesh>& mesh, const glm::mat4& transform, const SharedPtr<Shader>& shader);
+
+		static void SubmitSkybox(const SharedPtr<TextureCube> &skybox, const SharedPtr<Shader> &shader);
 
 		static void SubmitPipeline(const GraphicsPipeline &pipeline);
 	};

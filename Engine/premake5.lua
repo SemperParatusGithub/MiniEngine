@@ -23,7 +23,7 @@ project "Engine"
 		"External/cereal/include/cereal/**.cpp",
 
 		-- entt
-		"External/entt/include/entt.hpp",
+		"External/entt/include/entt/entt.hpp",
 
 		-- glm
 		"External/glm/glm/**.hpp",

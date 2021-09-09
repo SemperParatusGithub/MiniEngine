@@ -144,8 +144,8 @@ namespace Engine
     {
         int loc = glGetUniformLocation(m_RendererID, name.c_str());
         if (loc == -1){
-            ME_WARN("Uniform %s not found", name.c_str());
-            ME_BREAKDEBUGGER;
+            //ME_WARN("Uniform %s not found", name.c_str());
+            //ME_BREAKDEBUGGER;
         }
         return loc;
     }

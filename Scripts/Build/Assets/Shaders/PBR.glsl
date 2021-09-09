@@ -1,11 +1,11 @@
 #shader vertex
-#version 450
+#version 430 core
 
 // PBR Shader in MiniEngine (under development)
 //  Ressources:
 //  - joey de vries (learnopengl):  https://learnopengl.com/PBR
 //  - TheCherno     (Hazel Engine): https://github.com/TheCherno/Hazel
-//  - Michal Siejak (PBR):          https://github.com/Nadrins
+//  - Michal Siejak (PBR):          https://github.com/Nadrin/PBR
 
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
@@ -39,7 +39,7 @@ void main()
 }
 
 #shader fragment
-#version 450
+#version 430 core
 
 const float PI = 3.141592;
 const float Epsilon = 0.00001;
@@ -157,26 +157,20 @@ vec3 ApplyLighting(vec3 F0)
 		float G = gaSchlickGGX(cosLi, m_Params.NdotV, m_Params.Roughness);
 
 		vec3 kd = (1.0 - F) * (1.0 - m_Params.Metalness);
+		// vec3 kd = mix(vec3(1.0) - F, vec3(0.0), m_Params.Metalness);
+
 		vec3 diffuseBRDF = kd * m_Params.Albedo;
 
 		// Cook-Torrance
 		vec3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * m_Params.NdotV);
 
-		result += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
+		result += (specularBRDF) * Lradiance * cosLi;
 	}
 	return result;
 }
 
-float Convert_sRGB_FromLinear(float theLinearValue)
-{
-	return theLinearValue <= 0.0031308f
-		? theLinearValue * 12.92f
-		: pow(theLinearValue, 1.0f / 2.4f) * 1.055f - 0.055f;
-}
-
 vec3 ApplyIBL(vec3 F0, vec3 Lr)
 {
-	// TODO: Replace with proper IBL
 	// return vec3(0.03) * m_Params.Albedo;
 
 	vec3 irradiance = texture(u_EnvIrradianceTex, m_Params.Normal).rgb;
@@ -188,7 +182,6 @@ vec3 ApplyIBL(vec3 F0, vec3 Lr)
 	float NoV = clamp(m_Params.NdotV, 0.0, 1.0);
 	vec3 R = 2.0 * dot(m_Params.View, m_Params.Normal) * m_Params.Normal - m_Params.View;
 	vec3 specularIrradiance = textureLod(u_EnvRadianceTex, Lr, (m_Params.Roughness) * envRadianceTexLevels).rgb;
-	//specularIrradiance = vec3(Convert_sRGB_FromLinear(specularIrradiance.r), Convert_sRGB_FromLinear(specularIrradiance.g), Convert_sRGB_FromLinear(specularIrradiance.b));
 
 	// Sample BRDF Lut, 1.0 - roughness for y-coord because texture was generated (in Sparky) for gloss model
 	vec2 specularBRDF = texture(u_BRDFLUTTexture, vec2(m_Params.NdotV, 1.0 - m_Params.Roughness)).rg;

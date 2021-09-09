@@ -104,13 +104,14 @@ namespace Engine
 	void GraphicsPipeline::Create()
 	{
 		ME_ASSERT(vertexBuffer);
-		ME_ASSERT(indexBuffer);
+		//ME_ASSERT(indexBuffer);
 
 		glCreateVertexArrays(1, &m_VertexArrayRendererID);
 		glBindVertexArray(m_VertexArrayRendererID);
 
 		vertexBuffer->Bind();
-		indexBuffer->Bind();
+		if(indexBuffer)
+			indexBuffer->Bind();
 
 		ME_TRACE("---------------------------------------------------------");
 		ME_TRACE("Pipeline Layout: ");

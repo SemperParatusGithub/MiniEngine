@@ -5,6 +5,8 @@
 
 #include <imgui.h>
 
+#include <Imguizmo.h>
+
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 #include <examples/imgui_impl_opengl3.cpp>
 #include <examples/imgui_impl_glfw.cpp>
@@ -19,7 +21,7 @@ namespace Engine
 	{
 		ImGui::CreateContext();
 		ImGuiIO &io = ImGui::GetIO(); (void) io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
@@ -44,7 +46,7 @@ namespace Engine
 		io.Fonts->AddFontFromFileTTF("Assets/Fonts/OpenSans-Regular.ttf", 22);
 
 		// Setup imgui style
-		style.WindowPadding = ImVec2(15, 15);
+		style.WindowPadding = ImVec2(10, 10);
 		style.WindowRounding = 0.0f;
 
 		style.FramePadding = ImVec2(5, 5);
@@ -133,6 +135,8 @@ namespace Engine
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+
+		ImGuizmo::BeginFrame();
 	}
 
 	void Engine::ImGuiHelper::EndFrame()

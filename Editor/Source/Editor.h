@@ -4,6 +4,7 @@
 #include "../imgui/imgui.h"
 
 
+
 class Editor : public Engine::Application
 {
 public:
@@ -25,8 +26,20 @@ private:
 	void MainRenderPass();
 	void CompositionRenderPass();
 
+	Engine::Environment CreateEnvironment(const std::string &filepath);
+
 	void BeginDockspace();
 	void EndDockspace();
+
+	void DrawHierarchy();
+	void DrawInspector();
+
+	void DrawDebugInfo();
+	void DrawEnvironmentSettings();
+
+	void UpdateGizmos();
+
+	bool DrawSliderFloat3(const std::string& name, float labelWidth, glm::vec3& vector, float resetValue);
 
 	Engine::Ray CastRay()
 	{
@@ -57,32 +70,17 @@ private:
 	bool m_ViewportFocused = false;
 
 private:
-	SharedPtr<Engine::TextureCube> m_RadianceMap;
-	SharedPtr<Engine::TextureCube> m_IrradianceMap;
-	SharedPtr<Engine::Texture> m_BRDFLUTImage;
-
-	SharedPtr<Engine::Shader> m_SkyboxShader;
-
 	SharedPtr<Engine::Framebuffer> m_MainFramebuffer;
 	SharedPtr<Engine::Framebuffer> m_FinalFramebuffer;
 	Engine::EditorCamera m_Camera;
 
-	SharedPtr<Engine::Shader> m_GridShader;
-	SharedPtr<Engine::Shader> m_OutlineShader;
-	SharedPtr<Engine::Shader> m_CompositionShader;
-
-	SharedPtr<Engine::Shader> m_PBRShader;
-
-	SharedPtr<Engine::Mesh> m_TestMesh;
-	SharedPtr<Engine::Mesh> m_RoundedCube;
 	bool m_IsMeshSelected = false;
-
-	bool m_RenderLines = false;
 
 	bool m_EnableTonemapping = true;
 	float m_Exposure = 1.0f;
 
-	RendererID skyboxVAO;
+	Engine::Scene m_Scene;
+	Engine::Entity m_SelectedEntity;
 
-	float m_TextureLod = 0.0f;
+	int m_ImGuizmoOperation = 0;
 };

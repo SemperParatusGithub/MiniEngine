@@ -23,10 +23,11 @@ void main()
 layout(location = 0) out vec4 o_Color;
 in vec3 v_TexCoords;
 uniform float u_TextureLod;
+uniform float u_Exposure;
 
 uniform samplerCube u_ImageCube;
 
 void main()
 {    
-    o_Color = textureLod(u_ImageCube, v_TexCoords, u_TextureLod);
+    o_Color = u_Exposure * textureLod(u_ImageCube, v_TexCoords, u_TextureLod);
 }

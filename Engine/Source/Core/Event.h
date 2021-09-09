@@ -1,3 +1,4 @@
+#pragma once
 #include "EngineBase.h"
 
 #include <glm/glm.hpp>

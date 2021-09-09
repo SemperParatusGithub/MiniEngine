@@ -1,4 +1,6 @@
 #include "Editor.h"
+#define NOMINMAX
+#include <Windows.h>
 
 #include <Glad/glad.h>
 
@@ -6,113 +8,63 @@
 #include <imgui/imgui_internal.h>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <ImGuizmo/ImGuizmo.h>
+
 #include <stb_image/stb_image.h>
 
-#include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h>		
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>	
 
 
-unsigned int cubeVAO = 0;
-unsigned int cubeVBO = 0;
-void renderCube()
+static std::string OpenFileDialog(const char* filter)
 {
-	// initialize (if necessary)
-	if (cubeVAO == 0)
+	OPENFILENAMEA ofn;				// common dialog box structure
+	CHAR szFile[260] = { 0 };       // if using TCHAR macros
+
+	// Initialize OPENFILENAME
+	ZeroMemory(&ofn, sizeof(OPENFILENAME));
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Engine::Application::GetInstance()->GetWindow()->GetWindowPointer());
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = sizeof(szFile);
+	ofn.lpstrFilter = filter;
+	ofn.nFilterIndex = 1;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+	if (GetOpenFileNameA(&ofn) == TRUE)
 	{
-		float vertices[] = {
-			// back face
-			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-			 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-			 1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-			 1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-			-1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-			-1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
-			// front face
-			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-			 1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-			 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-			 1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-			-1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
-			-1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-			// left face
-			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-			-1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
-			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-			-1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-			-1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-			-1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-			// right face
-			 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-			 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-			 1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
-			 1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-			 1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-			 1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
-			// bottom face
-			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-			 1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-			 1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-			 1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-			-1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-			-1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-			// top face
-			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-			 1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-			 1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-			 1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-			-1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-			-1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
-		};
-		glGenVertexArrays(1, &cubeVAO);
-		glGenBuffers(1, &cubeVBO);
-		// fill buffer
-		glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-		// link vertex attributes
-		glBindVertexArray(cubeVAO);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
+		return ofn.lpstrFile;
 	}
-	// render Cube
-	glBindVertexArray(cubeVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-	glBindVertexArray(0);
+
+	return std::string("");
 }
-
-unsigned int loadCubemap(std::vector<std::string> faces)
+static std::string SaveFileDialog(const char* filter)
 {
-	stbi_set_flip_vertically_on_load(false);
-	unsigned int textureID;
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+	OPENFILENAMEA ofn;
+	CHAR szFile[260] = { 0 };
+	CHAR currentDir[256] = { 0 };
 
-	int width, height, nrChannels;
-	for (unsigned int i = 0; i < faces.size(); i++)
+	ZeroMemory(&ofn, sizeof(OPENFILENAME));
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Engine::Application::GetInstance()->GetWindow()->GetWindowPointer());
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = sizeof(szFile);
+	if (GetCurrentDirectoryA(256, currentDir))
+		ofn.lpstrInitialDir = currentDir;
+	ofn.lpstrFilter = filter;
+	ofn.nFilterIndex = 1;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+
+	// Sets the default extension by extracting it from the filter
+	ofn.lpstrDefExt = strchr(filter, '\0') + 1;
+
+	if (GetSaveFileNameA(&ofn) == TRUE)
 	{
-		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-		if (data)
-		{
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-			stbi_image_free(data);
-		}
-		else
-		{
-			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
-			stbi_image_free(data);
-		}
+		return ofn.lpstrFile;
 	}
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-	return textureID;
+	return std::string("");
 }
 
 Editor::Editor(): 
@@ -125,15 +77,6 @@ Editor::~Editor()
 
 void Editor::OnCreate()
 {
-	m_GridShader = MakeShared<Engine::Shader>("Assets/Shaders/Grid.glsl");
-	m_OutlineShader = MakeShared<Engine::Shader>("Assets/Shaders/Outline.glsl");
-	m_CompositionShader = MakeShared<Engine::Shader>("Assets/Shaders/Composition.glsl");
-
-	m_PBRShader = MakeShared<Engine::Shader>("Assets/Shaders/PBR.glsl");
-
-	//m_TestMesh = MakeShared<Engine::Mesh>("DamagedHelmet/DamagedHelmet.gltf");
-	m_TestMesh = MakeShared<Engine::Mesh>("Assets/Meshes/Sphere.fbx");
-
 	auto &window = Application::GetInstance()->GetWindow();
 	window->Maximize();
 	window->SetVSync(false);
@@ -142,7 +85,7 @@ void Editor::OnCreate()
 	m_MainFramebuffer->multisampled = true;
 	m_MainFramebuffer->samples = 8;
 	m_MainFramebuffer->attachments = {
-		Engine::FramebufferTextureFormat::RGBA8,
+		Engine::FramebufferTextureFormat::RGBA32F,
 		Engine::FramebufferTextureFormat::DEPTH24STENCIL8
 	};
 	m_MainFramebuffer->Create();
@@ -154,13 +97,318 @@ void Editor::OnCreate()
 	};
 	m_FinalFramebuffer->Create();
 
-	const uint32_t cubemapSize = 1024;
-	const uint32_t irradianceMapSize = 32;
+	m_Scene.environment = CreateEnvironment("Assets/Environments/Clouds.hdr");
+
+	auto entity = m_Scene.CreateEntity("Test Scene");
+	entity.Add<Engine::MeshComponent>("Assets/Meshes/TestScene.fbx");
+	entity.Get<Engine::TransformComponent>().transform.Scale(glm::vec3(0.15f));
+}
+
+void Editor::OnDestroy()
+{
+}
+
+void Editor::OnUpdate(float delta)
+{
+	// Gizmos
+	if (Engine::Input::IsKeyPressed(Engine::Key::LeftControl) && !ImGuizmo::IsUsing())
+	{
+		if (Engine::Input::IsKeyPressed(Engine::Key::D1))
+			m_ImGuizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+		if (Engine::Input::IsKeyPressed(Engine::Key::D2))
+			m_ImGuizmoOperation = ImGuizmo::OPERATION::ROTATE;
+		if (Engine::Input::IsKeyPressed(Engine::Key::D3))
+			m_ImGuizmoOperation = ImGuizmo::OPERATION::SCALE;
+		if (Engine::Input::IsKeyPressed(Engine::Key::D0))
+			m_ImGuizmoOperation = -1;
+	}
+
+	Engine::Renderer::SetClearColor(glm::vec4{ 0.7f, 0.7f, 0.7f, 1.0f });
+	Engine::Renderer::Clear();
+
+	m_Camera.OnUpdate(delta);
+
+
+	if (m_ViewportSizeChanged)
+	{
+		m_Camera.OnResize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
+		m_MainFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
+		m_FinalFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
+		m_ViewportSizeChanged = false;
+	}
+
+	MainRenderPass();
+
+	CompositionRenderPass();
+}
+
+void Editor::OnEvent(Engine::Event &event)
+{
+	m_Camera.OnEvent(event);
+
+	if (event.type == Engine::EventType::MouseButtonPressed &&
+		event.mouse.code == Engine::Mouse::ButtonLeft && m_ViewportHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver())
+	{
+		m_SelectedEntity = Engine::Entity();
+
+		auto mouseRay = CastRay();
+
+		auto view = m_Scene.GetRegistry().view<Engine::TransformComponent, Engine::MeshComponent>();
+		view.each([&](const entt::entity ent, const Engine::TransformComponent& tc, const Engine::MeshComponent& mc)
+			{
+				auto entity = Engine::Entity(ent, &m_Scene);
+				auto& subMeshes = mc.mesh->GetSubMeshes();
+
+				for (u32 i = 0; i < subMeshes.size(); i++)
+				{
+					auto& subMesh = subMeshes[i];
+					glm::mat4 transform = tc.transform.GetTransform();
+
+					Engine::Ray ray = {
+						glm::inverse(transform * subMesh.transform) * glm::vec4(mouseRay.origin, 1.0f),
+						glm::inverse(glm::mat3(transform) * glm::mat3(subMesh.transform)) * mouseRay.direction
+					};
+
+					bool intersection = false;
+					const auto& triangleMesh = mc.mesh->GetTriangleRepresentation();
+
+					for (auto& triangle : triangleMesh)
+					{
+						float distance; 
+						if (Engine::Math::RayIntersectsTriangle(ray, triangle, distance))
+						{
+							m_SelectedEntity = Engine::Entity(ent, &m_Scene);
+						}
+					}
+				}
+			});
+	}
+}
+
+void Editor::OnImGui()
+{
+	BeginDockspace();
+
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			ImGui::MenuItem("New", "Ctrl+N");
+			ImGui::MenuItem("Open...", "Ctrl+O");
+			ImGui::MenuItem("Save As...", "Ctrl+Shift+S");
+			ImGui::MenuItem("Exit");
+
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Settings"))
+		{
+			ImGui::MenuItem("Option 1");
+			ImGui::MenuItem("Option 2");
+			ImGui::MenuItem("Option 3");
+			ImGui::MenuItem("Option 4");
+
+			ImGui::EndMenu();
+		}
+		ImGui::EndMenuBar();
+	}
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+	ImGui::SetNextWindowSizeConstraints(ImVec2(600.0f, 400.0f), ImVec2(4000.0f, 3000.0f));
+	ImGui::Begin("Viewport");
+
+	m_ViewportFocused = ImGui::IsWindowFocused();
+	m_ViewportHovered = ImGui::IsWindowHovered();
+
+	m_ViewportPosition = {
+		ImGui::GetWindowPos().x + ImGui::GetCursorPos().x,
+		ImGui::GetWindowPos().y + ImGui::GetCursorPos().y
+	};
+	glm::vec2 newViewportSize = {
+		ImGui::GetWindowSize().x - ImGui::GetCursorPos().x,
+		ImGui::GetWindowSize().y - ImGui::GetCursorPos().y
+	};
+	if (newViewportSize != m_ViewportSize) {
+		m_ViewportSize = newViewportSize;
+		m_ViewportSizeChanged = true;
+	}
+
+	ImGui::Image((ImTextureID) m_FinalFramebuffer->GetColorAttachmentRendererID(), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+	UpdateGizmos();
+
+	ImGui::End();	
+	ImGui::PopStyleVar();
+
+	DrawDebugInfo();
+	DrawEnvironmentSettings();
+
+	DrawHierarchy();
+	DrawInspector();
+
+	EndDockspace();
+}
+
+void Editor::MainRenderPass()
+{
+	m_MainFramebuffer->Bind();
+
+	bool isMeshSelected = false;
+	if (m_SelectedEntity)
+		isMeshSelected = m_SelectedEntity.Has<Engine::MeshComponent>();
+
+	if (isMeshSelected)
+		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+	Engine::Renderer::SetClearColor(glm::vec4{ 0.7f, 0.7f, 0.7f, 1.0f });
+	Engine::Renderer::Clear();
+
+	if (isMeshSelected)
+		glStencilMask(0);
+
+	// Render Scene
+	{
+		auto& shader = Engine::Renderer::GetShader("PBR");
+		shader->Bind();
+		shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
+		shader->SetUniformFloat3("u_CameraPosition", m_Camera.GetPosition());
+
+		auto &directionalLight = m_Scene.environment.directionalLight;
+		shader->SetUniformInt("u_DirectionalLights[0].Active", directionalLight.active);
+		shader->SetUniformFloat3("u_DirectionalLights[0].Direction", directionalLight.direction);
+		shader->SetUniformFloat3("u_DirectionalLights[0].Radiance", directionalLight.radiance);
+		shader->SetUniformFloat("u_DirectionalLights[0].Multiplier", directionalLight.intensity);
+
+		shader->SetUniformInt("u_BRDFLUTTexture", 5);
+		shader->SetUniformInt("u_EnvRadianceTex", 6);
+		shader->SetUniformInt("u_EnvIrradianceTex", 7);
+
+		m_Scene.environment.brdflutTexture->Bind(5);
+		m_Scene.environment.radianceMap->Bind(6);
+		m_Scene.environment.irradianceMap->Bind(7);
+
+		auto view = m_Scene.GetRegistry().view<Engine::TransformComponent, Engine::MeshComponent>();
+		view.each([=](const entt::entity ent, const Engine::TransformComponent& tc, const Engine::MeshComponent& mc)
+			{
+				if (mc.mesh->IsLoaded() && m_SelectedEntity.GetEntity() != ent)
+					Engine::Renderer::SubmitMesh(mc.mesh, tc.transform.GetTransform());
+			});
+	}
+
+	// Render Skybox
+	{
+		const auto &shader = Engine::Renderer::GetShader("Skybox");
+		const auto &proj = m_Camera.GetProjectionMatrix();
+		auto view = glm::mat4(glm::mat3(m_Camera.GetViewMatrix()));
+
+		shader->Bind();	
+		shader->SetUniformMatrix4("u_Projection", proj);
+		shader->SetUniformMatrix4("u_View", view);
+		shader->SetUniformInt("u_ImageCube", 0);
+		shader->SetUniformFloat("u_TextureLod", m_Scene.environment.textureLod);
+		shader->SetUniformFloat("u_Exposure", m_Scene.environment.exposure);
+
+		m_Scene.environment.radianceMap->Bind(0);
+
+		Engine::Renderer::SubmitSkybox(m_Scene.environment.radianceMap, shader);
+	}
+
+	// Render selected mesh
+	if(isMeshSelected)
+	{
+		glStencilFunc(GL_ALWAYS, 1, 0xff);
+		glStencilMask(0xff);
+
+		auto &selectedMesh = m_SelectedEntity.Get<Engine::MeshComponent>();
+		const auto &transform = m_SelectedEntity.Get<Engine::TransformComponent>();
+
+		if (selectedMesh.mesh->IsLoaded())
+		{
+			auto& shader = Engine::Renderer::GetShader("PBR");
+			shader->Bind();
+			shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
+			shader->SetUniformFloat3("u_CameraPosition", m_Camera.GetPosition());
+
+			shader->SetUniformFloat3("u_AlbedoColor", glm::vec3(0.8f, 0.1f, 0.15f));
+
+			shader->SetUniformInt("u_EnableAlbedoTexture", 0);
+			shader->SetUniformInt("u_EnableNormalMapTexture", 0);
+			shader->SetUniformInt("u_EnableMetalnessTexture", 0);
+			shader->SetUniformInt("u_EnableRoughnessTexture", 0);
+
+			shader->SetUniformInt("u_DirectionalLights[0].Active", 1);
+			shader->SetUniformFloat3("u_DirectionalLights[0].Direction", glm::vec3(glm::radians(30.0f), glm::radians(20.0f), 0.0f));
+			shader->SetUniformFloat3("u_DirectionalLights[0].Radiance", glm::vec3(1.0f));
+			shader->SetUniformFloat("u_DirectionalLights[0].Multiplier", 1.0f);
+
+			shader->SetUniformInt("u_DirectionalLights[1].Active", 0);
+			shader->SetUniformInt("u_DirectionalLights[2].Active", 0);
+			shader->SetUniformInt("u_DirectionalLights[3].Active", 0);
+
+			shader->SetUniformInt("u_BRDFLUTTexture", 5);
+			shader->SetUniformInt("u_EnvRadianceTex", 6);
+			shader->SetUniformInt("u_EnvIrradianceTex", 7);
+
+			m_Scene.environment.brdflutTexture->Bind(5);
+			m_Scene.environment.radianceMap->Bind(6);
+			m_Scene.environment.irradianceMap->Bind(7);
+			Engine::Renderer::SubmitMesh(selectedMesh.mesh, transform.transform.GetTransform());
+
+			glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+			glStencilMask(0x00);
+			glDisable(GL_DEPTH_TEST);
+			glLineWidth(10);
+			glEnable(GL_LINE_SMOOTH);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+			auto& outlineShader = Engine::Renderer::GetShader("Outline");
+			outlineShader->Bind();
+			outlineShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
+			Engine::Renderer::SubmitMeshWithShader(selectedMesh.mesh, transform.transform.GetTransform() * glm::scale(glm::mat4(1.0f), glm::vec3(1.015f)), outlineShader);
+
+			glPointSize(10);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+
+			Engine::Renderer::SubmitMeshWithShader(selectedMesh.mesh, transform.transform.GetTransform() * glm::scale(glm::mat4(1.0f), glm::vec3(1.015f)), outlineShader);
+
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glStencilMask(0xff);
+			glStencilFunc(GL_ALWAYS, 1, 0xff);
+			glEnable(GL_DEPTH_TEST);
+		}
+	}
+
+	m_MainFramebuffer->UnBind();
+}
+
+void Editor::CompositionRenderPass()
+{
+	m_FinalFramebuffer->Bind();
+
+	auto& shader = Engine::Renderer::GetShader("Composition");
+	shader->Bind();
+	
+	shader->SetUniformInt("u_Texture", 0);
+	shader->SetUniformInt("u_TextureSamples", m_MainFramebuffer->samples);
+	shader->SetUniformInt("u_EnableTonemapping", m_EnableTonemapping);
+	shader->SetUniformFloat("u_Exposure", m_Exposure);
+	glBindTextureUnit(0, m_MainFramebuffer->GetColorAttachmentRendererID());
+	
+	Engine::Renderer::Clear();
+	Engine::Renderer::SubmitQuad(shader);
+	
+	m_FinalFramebuffer->UnBind();
+}
+
+Engine::Environment Editor::CreateEnvironment(const std::string& filepath)
+{
+	Engine::Environment environment;
+
+	constexpr uint32_t cubemapSize = 1024;
+	constexpr uint32_t irradianceMapSize = 32;
 
 	SharedPtr<Engine::ComputeShader> EquirectangularToCubemapShader = MakeShared<Engine::ComputeShader>("Assets/Shaders/EquirectangularToCubemap.compute.glsl");
 
 	SharedPtr<Engine::TextureCube> environmentTextureCube = MakeShared<Engine::TextureCube>(cubemapSize, cubemapSize);
-	SharedPtr<Engine::Texture> HDRTexture = MakeShared<Engine::Texture>("Assets/Environments/Kloppenheim.hdr");
+	SharedPtr<Engine::Texture> HDRTexture = MakeShared<Engine::Texture>(filepath.c_str());
 
 	EquirectangularToCubemapShader->Bind();
 
@@ -177,7 +425,7 @@ void Editor::OnCreate()
 
 	// TODO: Filter environment map and create irradiance map for ibl
 	SharedPtr<Engine::ComputeShader> environmentFilteringShader = MakeShared<Engine::ComputeShader>("Assets/Shaders/EnvironmentFiltering.compute.glsl");
-	SharedPtr<Engine::TextureCube> filteredEnvironmentTextureCube = MakeShared<Engine::TextureCube>(1024, 1024);
+	SharedPtr<Engine::TextureCube> filteredEnvironmentTextureCube = MakeShared<Engine::TextureCube>(cubemapSize, cubemapSize);
 
 	glCopyImageSubData(environmentTextureCube->GetRendererID(), GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,
 		filteredEnvironmentTextureCube->GetRendererID(), GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,
@@ -213,364 +461,15 @@ void Editor::OnCreate()
 	glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glGenerateTextureMipmap(irradianceMap->GetRendererID());
 
-	m_RadianceMap = filteredEnvironmentTextureCube;
-	m_IrradianceMap = irradianceMap;
-
-	m_SkyboxShader = MakeShared<Engine::Shader>("Assets/Shaders/Skybox.glsl");
-
-	m_BRDFLUTImage = MakeShared<Engine::Texture>("Assets/Textures/BRDF.tga");
-
-	float skyboxVertices[] = {
-		// positions          
-		-1.0f,  1.0f, -1.0f,
-		-1.0f, -1.0f, -1.0f,
-		 1.0f, -1.0f, -1.0f,
-		 1.0f, -1.0f, -1.0f,
-		 1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		 1.0f, -1.0f, -1.0f,
-		 1.0f, -1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f, -1.0f,
-		 1.0f, -1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		-1.0f,  1.0f, -1.0f,
-		 1.0f,  1.0f, -1.0f,
-		 1.0f,  1.0f,  1.0f,
-		 1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		 1.0f, -1.0f, -1.0f,
-		 1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		 1.0f, -1.0f,  1.0f
-	};
-
-	RendererID skyboxVBO;
-	glGenVertexArrays(1, &skyboxVAO);
-	glGenBuffers(1, &skyboxVBO);
-	glBindVertexArray(skyboxVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-	m_RoundedCube = MakeShared<Engine::Mesh>("Assets/Meshes/RoundedCube.fbx");
-}
-
-void Editor::OnDestroy()
-{
-}
-
-void Editor::OnUpdate(float delta)
-{
-	Engine::Renderer::SetClearColor(glm::vec4{ 0.7f, 0.7f, 0.7f, 1.0f });
-	Engine::Renderer::Clear();
-
-	m_Camera.OnUpdate(delta);
-
-
-	if (m_ViewportSizeChanged)
-	{
-		m_Camera.OnResize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
-		m_MainFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
-		m_FinalFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
-		m_ViewportSizeChanged = false;
-	}
-
-	MainRenderPass();
-
-	CompositionRenderPass();
-}
-
-void Editor::OnEvent(Engine::Event &event)
-{
-	m_Camera.OnEvent(event);
-
-	if (event.type == Engine::EventType::MouseButtonPressed &&
-		event.mouse.code == Engine::Mouse::ButtonLeft)
-	{
-		m_IsMeshSelected = false;
-
-		auto mouseRay = CastRay();
-
-		auto& subMeshes = m_TestMesh->GetSubMeshes();
-		for (u32 i = 0; i < subMeshes.size(); i++)
-		{
-			auto& subMesh = subMeshes[i];
-			glm::mat4 transform = glm::mat4(1.0f);
-
-			Engine::Ray ray = {
-				glm::inverse(transform * subMesh.transform) * glm::vec4(mouseRay.origin, 1.0f),
-				glm::inverse(glm::mat3(transform) * glm::mat3(subMesh.transform)) * mouseRay.direction
-			};
-
-			const auto& triangleMesh = m_TestMesh->GetTriangleRepresentation();
-			for (auto& triangle : triangleMesh)
-			{
-				if (Engine::Math::RayIntersectsTriangle(ray, triangle))
-				{
-					m_IsMeshSelected = true;
-				}
-			}
-		}
-	}
-}
-
-void Editor::OnImGui()
-{
-	BeginDockspace();
-
-	if (ImGui::BeginMenuBar())
-	{
-		if (ImGui::BeginMenu("File"))
-		{
-			if (ImGui::MenuItem("New", "Ctrl+N"));
-			if (ImGui::MenuItem("Open...", "Ctrl+O"));
-			if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"));
-			if (ImGui::MenuItem("Exit"));
-
-			ImGui::EndMenu();
-		}
-		if (ImGui::BeginMenu("Settings"))
-		{
-			if (ImGui::MenuItem("Option 1"));
-			if (ImGui::MenuItem("Option 2"));
-			if (ImGui::MenuItem("Option 3"));
-			if (ImGui::MenuItem("Option 4"));
-
-			ImGui::EndMenu();
-		}
-		ImGui::EndMenuBar();
-	}
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-	ImGui::Begin("Viewport");
-
-	m_ViewportFocused = ImGui::IsWindowFocused();
-	m_ViewportHovered = ImGui::IsWindowHovered();
-
-	m_ViewportPosition = {
-		ImGui::GetWindowPos().x + ImGui::GetCursorPos().x,
-		ImGui::GetWindowPos().y + ImGui::GetCursorPos().y
-	};
-	glm::vec2 newViewportSize = {
-		ImGui::GetWindowSize().x - ImGui::GetCursorPos().x,
-		ImGui::GetWindowSize().y - ImGui::GetCursorPos().y
-	};
-	if (newViewportSize != m_ViewportSize) {
-		m_ViewportSize = newViewportSize;
-		m_ViewportSizeChanged = true;
-	}
-
-	ImGui::Image((ImTextureID) m_FinalFramebuffer->GetColorAttachmentRendererID(), ImVec2(m_ViewportSize.x, m_ViewportSize.y), ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
-
-	ImGui::End();
-	ImGui::PopStyleVar();
-
-	ImGui::Begin("Debug");
-	ImGui::Text("Mesh selected: %d", m_IsMeshSelected);
-	ImGui::Text("Framerate: %.2f FPS", ImGui::GetIO().Framerate);
-	ImGui::Text("Frametime: %.2f ms", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
-
-	ImGui::Checkbox("Render Lines", &m_RenderLines);
-
-	static float lineThickness = 1.0f;
-	if (ImGui::SliderFloat("Line Thickness", &lineThickness, 0.1f, 10.0f))
-		Engine::Renderer::SetLineThickness(lineThickness);
-
-	static bool enableMSAA = false;
-	ImGui::Checkbox("MSAA", &enableMSAA);
-
-	static int samples = 4;
-	if (ImGui::SliderInt("Samples", &samples, 2, 32))
-	{
-		m_MainFramebuffer->samples = samples;
-		m_MainFramebuffer->Create();
-	}
-
-	ImGui::Separator();
-
-	ImGui::Checkbox("Tonemapping", &m_EnableTonemapping);
-	ImGui::SliderFloat("Exposure", &m_Exposure, 0.1f, 10.0f);
-	ImGui::SliderFloat("m_TextureLod", &m_TextureLod, 0.0f, 1.0f);
-
-	ImGui::End();
-
-	EndDockspace();
-}
-
-void Editor::MainRenderPass()
-{
-	m_MainFramebuffer->Bind();
-
-	if (m_RenderLines)
-		Engine::Renderer::RenderLines();
-
-	if (m_IsMeshSelected)
-		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-	Engine::Renderer::SetClearColor(glm::vec4{ 0.7f, 0.7f, 0.7f, 1.0f });
-	Engine::Renderer::Clear();
-
-	if (m_IsMeshSelected)
-		glStencilMask(0);
-
-	// Render Scene here
-	auto& shader = m_TestMesh->GetShader();
-	shader->Bind();
-	shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-	shader->SetUniformFloat3("u_CameraPosition", m_Camera.GetPosition());
-
-	shader->SetUniformFloat3("u_AlbedoColor", glm::vec3(0.8f, 0.1f, 0.15f));
-
-	shader->SetUniformInt("u_EnableAlbedoTexture", 0);
-	shader->SetUniformInt("u_EnableNormalMapTexture", 0);
-	shader->SetUniformInt("u_EnableMetalnessTexture", 0);
-	shader->SetUniformInt("u_EnableRoughnessTexture", 0);
-
-	shader->SetUniformInt("u_DirectionalLights[0].Active", 1);
-	shader->SetUniformFloat3("u_DirectionalLights[0].Direction", glm::vec3(glm::radians(30.0f), glm::radians(20.0f), 0.0f));
-	shader->SetUniformFloat3("u_DirectionalLights[0].Radiance", glm::vec3(1.0f));
-	shader->SetUniformFloat("u_DirectionalLights[0].Multiplier", 1.0f);
-
-	shader->SetUniformInt("u_DirectionalLights[1].Active", 0);
-	shader->SetUniformInt("u_DirectionalLights[2].Active", 0);
-	shader->SetUniformInt("u_DirectionalLights[3].Active", 0);
-
-	shader->SetUniformInt("u_BRDFLUTTexture", 5);
-	shader->SetUniformInt("u_EnvRadianceTex", 6);
-	shader->SetUniformInt("u_EnvIrradianceTex", 7);
-
-	m_BRDFLUTImage->Bind(5);
-	m_RadianceMap->Bind(6);
-	m_IrradianceMap->Bind(7);
-
-	for (int i = 0; i < 10; i++)
-	{
-		for (int j = 0; j < 10; j++)
-		{
-			shader->SetUniformFloat("u_Metalness", i / 10.0f);
-			shader->SetUniformFloat("u_Roughness", j / 10.0f);
-			Engine::Renderer::SubmitMesh(m_TestMesh, glm::translate(glm::mat4(1.0f), glm::vec3(i * 1.2f - 6.0f, j * 1.2f - 6.0f, 0.0f)));
-		}
-	}
-
-	shader->SetUniformFloat3("u_AlbedoColor", glm::vec3(0.972f, 0.960f, 0.915f));
-	shader->SetUniformFloat("u_Metalness", 1.0f);
-	shader->SetUniformFloat("u_Roughness", 0.0f);
-	Engine::Renderer::SubmitMeshWithShader(m_RoundedCube, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 2.0f)) * glm::rotate(glm::mat4(1.0f), (float) glfwGetTime(), glm::vec3(0.0f,1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)), shader);
-
-	if (m_RenderLines)
-		Engine::Renderer::RenderLines(false);
-
-	//m_GridShader->Bind();
-	//m_GridShader->SetUniformMatrix4("u_ProjectionViewMatrix", m_Camera.GetProjectionViewMatrix());
-	//glm::mat4 gridTransform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
-	//	glm::scale(glm::mat4(1.0f), glm::vec3(100.0f));
-	//m_GridShader->SetUniformMatrix4("u_Transform", gridTransform);
-	//m_GridShader->SetUniformFloat3("u_GridColor", glm::vec3(0.4f));
-	//m_GridShader->SetUniformFloat("u_Segments", 40.0f);
-	//Engine::Renderer::SubmitQuad(m_GridShader);
-
-	glDepthFunc(GL_LEQUAL);
-
-	m_SkyboxShader->Bind();
-
-	glm::mat4 view = glm::mat4(glm::mat3(m_Camera.GetViewMatrix())); // remove translation from the view matrix
-	m_SkyboxShader->SetUniformMatrix4("u_Projection", m_Camera.GetProjectionMatrix());
-	m_SkyboxShader->SetUniformMatrix4("u_View", view);
-	m_SkyboxShader->SetUniformInt("u_ImageCube", 0);
-	m_SkyboxShader->SetUniformFloat("u_TextureLod", m_TextureLod);
-
-	m_RadianceMap->Bind(0);
-
-	glBindVertexArray(skyboxVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-
-	glDepthFunc(GL_LESS);
-
-	// Render selected mesh
-	//if (m_IsMeshSelected)
-	//{
-	//	glStencilFunc(GL_ALWAYS, 1, 0xff);
-	//	glStencilMask(0xff);
-	//}
-	//
-	//shader->Bind();
-	//shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-	//shader->SetUniformFloat3("u_AlbedoColor", glm::vec3(1.0f, 0.1f, 0.2f));
-	//shader->SetUniformFloat("u_Metalness", 0.7f);
-	//shader->SetUniformFloat("u_Roughness", 0.2f);
-	//
-	//shader->SetUniformInt("u_EnableAlbedoTexture", 0);
-	//shader->SetUniformInt("u_EnableNormalMapTexture", 0);
-	//shader->SetUniformInt("u_EnableMetalnessTexture", 0);
-	//shader->SetUniformInt("u_EnableRoughnessTexture", 0);
-	//
-	//shader->SetUniformInt("u_DirectionalLights[0].Active", 1);
-	//shader->SetUniformFloat3("u_DirectionalLights[0].Direction", glm::vec3(glm::radians(30.0f), glm::radians(20.0f), 0.0f));
-	//shader->SetUniformFloat3("u_DirectionalLights[0].Radiance", glm::vec3(1.0f));
-	//shader->SetUniformFloat("u_DirectionalLights[0].Multiplier", 1.0f);
-	//
-	//shader->SetUniformInt("u_DirectionalLights[1].Active", 0);
-	//shader->SetUniformInt("u_DirectionalLights[2].Active", 0);
-	//shader->SetUniformInt("u_DirectionalLights[3].Active", 0);
-	//
-	//Engine::Renderer::SubmitMesh(m_TestMesh, glm::mat4(1.0f));
-	//
-	//if (m_IsMeshSelected)
-	//{
-	//	glStencilFunc(GL_NOTEQUAL, 1, 0xff);
-	//	glStencilMask(0x00);
-	//	glDisable(GL_DEPTH_TEST);
-	//
-	//	m_OutlineShader->Bind();
-	//	m_OutlineShader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
-	//	Engine::Renderer::SubmitMeshWithShader(m_TestMesh, glm::scale(glm::mat4(1.0), glm::vec3(1.05f)), m_OutlineShader);
-	//
-	//	glStencilMask(0xff);
-	//	glStencilFunc(GL_ALWAYS, 0, 0xff);
-	//	glEnable(GL_DEPTH_TEST);
-	//}
-
-	m_MainFramebuffer->UnBind();
-}
-
-void Editor::CompositionRenderPass()
-{
-	m_FinalFramebuffer->Bind();
-	m_CompositionShader->Bind();
-	
-	m_CompositionShader->SetUniformInt("u_Texture", 0);
-	m_CompositionShader->SetUniformInt("u_TextureSamples", m_MainFramebuffer->samples);
-	m_CompositionShader->SetUniformInt("u_EnableTonemapping", m_EnableTonemapping);
-	m_CompositionShader->SetUniformFloat("u_Exposure", m_Exposure);
-	glBindTextureUnit(0, m_MainFramebuffer->GetColorAttachmentRendererID());
-	
-	Engine::Renderer::Clear();
-	Engine::Renderer::SubmitQuad(m_CompositionShader);
-	
-	m_FinalFramebuffer->UnBind();
+	environment.radianceMap = filteredEnvironmentTextureCube;
+	environment.irradianceMap = irradianceMap;
+	environment.brdflutTexture = MakeShared<Engine::Texture>("Assets/Textures/BRDF.tga");
+	environment.exposure = 1.0f;
+	environment.textureLod = 0.0f;
+
+	environment.directionalLight.active = true;
+
+	return environment;
 }
 
 void Editor::BeginDockspace()
@@ -598,4 +497,415 @@ void Editor::BeginDockspace()
 void Editor::EndDockspace()
 {
 	ImGui::End();
+}
+
+void Editor::DrawHierarchy()
+{
+	ImGui::Begin("Hierarchy");
+
+	if (ImGui::BeginPopupContextWindow(0, 1, false))
+	{
+		if (ImGui::BeginMenu("Create"))
+		{
+			if (ImGui::MenuItem("Entity"))
+			{
+				m_SelectedEntity = m_Scene.CreateEntity();
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndPopup();
+	}
+
+	auto view = m_Scene.GetRegistry().view<Engine::IDComponent>();
+
+	for (auto entity : view)
+	{
+		Engine::Entity currentEntity = Engine::Entity(entity, &m_Scene);
+		bool isActive = currentEntity.GetEntity() == m_SelectedEntity.GetEntity();
+
+		auto& idc = view.get<Engine::IDComponent>(entity);
+
+		ImGui::PushID((int)currentEntity.GetEntity());
+		if (ImGui::Selectable(idc.name.c_str(), &isActive))
+			m_SelectedEntity = currentEntity;
+		ImGui::PopID();
+	}
+
+	ImGui::End();
+}
+
+void Editor::DrawInspector()
+{
+	ImGui::Begin("Inspector");
+
+	if (m_SelectedEntity)
+	{
+		Engine::Entity entity = m_SelectedEntity;
+
+		auto& idc = entity.Get<Engine::IDComponent>();
+
+		char buffer[64];
+		std::memset(buffer, 0, 64);
+		std::memcpy(buffer, idc.name.c_str(), idc.name.length());
+
+		float buttonSize = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+		float nameWidth = ImGui::GetContentRegionAvail().x - buttonSize;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 5.0f));
+		ImGui::SetNextItemWidth(nameWidth);
+		if (ImGui::InputText("##Name", buffer, 64))
+			idc.name = std::string(buffer);
+
+		ImGui::SameLine();
+		if (ImGui::Button("...", ImVec2(buttonSize, buttonSize)))
+			ImGui::OpenPopup("Settings");
+
+		ImGui::PopStyleVar();	// Item spacing
+
+		if (ImGui::BeginPopup("Settings"))
+		{
+			if (ImGui::BeginMenu("Add Component"))
+			{
+				if (ImGui::MenuItem("Transform"))
+					if (!entity.Has<Engine::TransformComponent>())
+						entity.Add<Engine::TransformComponent>(Engine::TransformComponent{});
+
+
+				if (ImGui::MenuItem("Mesh"))
+					if (!entity.Has<Engine::MeshComponent>())
+						entity.Add<Engine::MeshComponent>(Engine::MeshComponent{});
+
+				ImGui::EndMenu();
+			}
+			if (ImGui::MenuItem("Delete Entity"))
+			{
+				entity.Destroy();
+			}
+
+			ImGui::EndPopup();
+		}
+		if (!entity)
+			goto there;
+		if (!entity.Has<Engine::TransformComponent>())
+			goto here;
+		auto& transform = entity.Get<Engine::TransformComponent>().transform;
+		auto translation = entity.Get<Engine::TransformComponent>().transform.GetTranslation();
+		auto rotation = entity.Get<Engine::TransformComponent>().transform.GetRotation();
+		auto scale = entity.Get<Engine::TransformComponent>().transform.GetScale();
+
+		if (ImGui::CollapsingHeader("Transform Component"))
+		{
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1))
+				ImGui::OpenPopup("Component Options##Transform");
+
+			glm::vec3 rotationDeg = glm::degrees(rotation);
+
+			ImGui::PushID((int)entity.GetEntity());
+			if (DrawSliderFloat3(" Translation", 110.0f, translation, 0.0f))
+				transform.SetTranslation(translation);
+			if (DrawSliderFloat3(" Rotation", 110.0f, rotationDeg, 0.0f))
+				transform.SetRotation(glm::radians(rotationDeg));
+			if (DrawSliderFloat3(" Scale", 110.0f, scale, 1.0f))
+				transform.SetScale(scale);
+			ImGui::PopID();
+		}
+		else if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1))
+			ImGui::OpenPopup("Component Options##Transform");
+
+		if (ImGui::BeginPopup("Component Options##Transform"))
+		{
+			if (ImGui::MenuItem("Remove Component"))
+				entity.Remove<Engine::TransformComponent>();
+
+			ImGui::EndPopup();
+		}
+
+	here:
+		if (!entity.Has<Engine::MeshComponent>())
+			goto there;
+		auto& mc = entity.Get<Engine::MeshComponent>();
+
+		if (ImGui::CollapsingHeader("Mesh Component"))
+		{
+			ImGui::TextWrapped("Filepath: %s", mc.mesh->GetFilepath().c_str());
+			if (ImGui::Button("Load"))
+			{
+				std::string filepath = OpenFileDialog("");
+				mc.mesh.reset(new Engine::Mesh(filepath));
+			}
+
+			static bool showMaterials = false;
+			if (ImGui::Button("Open Material Settings"))
+				showMaterials = true;
+			
+			if (showMaterials && !mc.mesh->GetSubMeshes().empty())
+			{
+				auto& subMaterials = mc.mesh->GetMaterials();
+			
+				ImGui::Begin("Materials", &showMaterials, ImGuiWindowFlags_NoDocking);
+			
+				static u32 selected = 0;
+			
+				ImGui::BeginChild("left pane", ImVec2(150, 0), true);
+				for (int i = 0; i < subMaterials.size(); i++)
+				{
+					std::string name = subMaterials[i].GetName();
+					if (ImGui::Selectable(name.c_str(), i == selected))
+						selected = i;
+				}
+				ImGui::EndChild();
+				ImGui::SameLine();
+			
+				// If the Mesh changed make sure we don't go out of bounds
+				selected = selected >= subMaterials.size() ? 0 : selected;
+			
+				ImGui::BeginChild("Settings");
+				if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
+				{
+					if (ImGui::BeginTabItem("Parameters"))
+					{
+						auto& params = subMaterials[selected].GetParameters();
+						ImGui::ColorEdit3("Albedo Color", &params.albedo[0]);
+						ImGui::SliderFloat("Metalness", &params.metalness, 0.0f, 1.0f);
+						ImGui::SliderFloat("Roughness", &params.roughness, 0.0f, 1.0f);
+						ImGui::EndTabItem();
+					}
+					if (ImGui::BeginTabItem("Textures"))
+					{
+						auto& textures = subMaterials[selected].GetTextures();
+			
+						auto CheckForClickAndSetTexture = [](SharedPtr<Engine::Texture>& texture)
+						{
+							if (ImGui::IsItemClicked())
+							{
+								std::string filepath = OpenFileDialog("");
+								if (filepath != "")
+									texture = MakeShared<Engine::Texture>(filepath);
+							}
+						};
+			
+						// Albedo
+						{
+							ImGui::Text("Albedo Texture");
+							if (!textures.albedo->IsLoaded())
+								ImGui::Image(0, ImVec2(64.0f, 64.0f));
+							else
+								ImGui::Image((ImTextureID) textures.albedo->GetRendererID(), ImVec2(64.0f, 64.0f));
+			
+							CheckForClickAndSetTexture(textures.albedo);
+							ImGui::Checkbox("Enable##Albedo", &textures.useAlbedo);
+						}
+			
+						// Normal Map
+						{
+							ImGui::Text("Normal Map");
+							if (!textures.normal->IsLoaded())
+								ImGui::Image(0, ImVec2(64.0f, 64.0f));
+							else
+								ImGui::Image((ImTextureID) textures.normal->GetRendererID(), ImVec2(64.0f, 64.0f));
+			
+							CheckForClickAndSetTexture(textures.normal);
+							ImGui::Checkbox("Enable##Normal", &textures.useNormal);
+						}
+			
+						// Metalness
+						{
+							ImGui::Text("Metalness Texture");
+							if (!textures.metalness->IsLoaded())
+								ImGui::Image(0, ImVec2(64.0f, 64.0f));
+							else
+								ImGui::Image((ImTextureID) textures.metalness->GetRendererID(), ImVec2(64.0f, 64.0f));
+			
+							CheckForClickAndSetTexture(textures.metalness);
+							ImGui::Checkbox("Enable##Metalness", &textures.useMetalness);
+						}
+			
+						// Roughness
+						{
+							ImGui::Text("Roughness Texture");
+							if (!textures.roughness->IsLoaded())
+								ImGui::Image(0, ImVec2(64.0f, 64.0f));
+							else
+								ImGui::Image((ImTextureID) textures.roughness->GetRendererID(), ImVec2(64.0f, 64.0f));
+			
+							CheckForClickAndSetTexture(textures.roughness);
+							ImGui::Checkbox("Enable##Roughness", &textures.useRoughness);
+						}
+			
+						ImGui::EndTabItem();
+					}
+					ImGui::EndTabBar();
+				}
+				ImGui::EndChild();
+				ImGui::End();
+			}
+		}
+	}
+
+	there:
+	ImGui::End();
+}
+
+void Editor::DrawDebugInfo()
+{
+	ImGui::Begin("Debug");
+	ImGui::Text("Framerate: %.2f FPS", ImGui::GetIO().Framerate);
+	ImGui::Text("Frametime: %.2f ms", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
+
+	static bool renderLines = false;
+	if (ImGui::Checkbox("Render Lines", &renderLines))
+	{
+		Engine::Renderer::SetLineThickness(0.1f);
+		Engine::Renderer::RenderLines(renderLines);
+	}
+
+
+	ImGui::Text("Multisampled Anti-Aliasing activated");
+	static int samples = 4;
+	if (ImGui::SliderInt("Samples", &samples, 2, 16))
+	{
+		// Recreate Framebuffer
+		m_MainFramebuffer->samples = samples;
+		m_MainFramebuffer->Create();
+	}
+
+	ImGui::Separator();
+
+	ImGui::Checkbox("Tonemapping", &m_EnableTonemapping);
+	ImGui::SliderFloat("Exposure", &m_Exposure, 0.1f, 10.0f);
+
+	static bool fpscam = false;
+	if (ImGui::Checkbox("FPS Camera", &fpscam))
+		m_Camera.SetCameraType(fpscam ? Engine::CameraType::FPS : Engine::CameraType::Orbit);
+
+	if (m_SelectedEntity)
+	{
+		auto name = m_SelectedEntity.Get<Engine::IDComponent>().name;
+		ImGui::Text("Selected entity: %s", name.c_str());
+	}
+
+	ImGui::End();
+}
+
+void Editor::DrawEnvironmentSettings()
+{
+	auto& env = m_Scene.environment;
+	auto& dl = env.directionalLight;
+
+	ImGui::Begin("Environment");
+	ImGui::SliderFloat("Exposure", &env.exposure, 0.1f, 10.0f);
+	ImGui::SliderFloat("TextureLod", &env.textureLod, 0.0f, 1.0f);
+	ImGui::Separator();
+	ImGui::Text("Directional Light");
+	ImGui::Checkbox("Active", &dl.active);
+	DrawSliderFloat3("Direction", 110.0f, dl.direction, 0.0f);
+	DrawSliderFloat3("Radiance", 110.0f, dl.radiance, 0.0f);
+	ImGui::SliderFloat("Intensity", &dl.intensity, 0.1f, 10.0f);
+	ImGui::End();
+}
+
+void Editor::UpdateGizmos()
+{
+	Engine::Entity activeEntity = m_SelectedEntity;
+	if (activeEntity && m_ImGuizmoOperation != -1)
+	{
+		ImGuizmo::SetOrthographic(false);
+		ImGuizmo::SetDrawlist();
+		ImGuizmo::SetRect(m_ViewportPosition.x, m_ViewportPosition.y, m_ViewportSize.x, m_ViewportSize.y);
+		const glm::mat4 &view = m_Camera.GetViewMatrix();
+		const glm::mat4 &proj = m_Camera.GetProjectionMatrix();
+
+		auto& tc = activeEntity.Get<Engine::TransformComponent>();
+		glm::mat4 transform = tc.transform.GetTransform();
+
+		bool snap = Engine::Input::IsKeyPressed(Engine::Key::LeftControl);
+		float snapValue = m_ImGuizmoOperation == ImGuizmo::OPERATION::ROTATE ? 45.0f : 0.5f;
+
+		float snapValues[3] = { snapValue, snapValue, snapValue };
+
+		ImGuizmo::Manipulate(&view[0][0], &proj[0][0], (ImGuizmo::OPERATION)m_ImGuizmoOperation,
+			ImGuizmo::LOCAL, &transform[0][0], nullptr, snap ? snapValues : nullptr);
+
+		if (ImGuizmo::IsUsing())
+		{
+			auto [translation, rotation, scale] = Engine::Math::Decompose(transform);
+
+			glm::vec3 deltaRotation = rotation - tc.transform.GetRotation();
+
+			if (m_ImGuizmoOperation == ImGuizmo::OPERATION::TRANSLATE)
+				tc.transform.SetTranslation(translation);
+			if (m_ImGuizmoOperation == ImGuizmo::OPERATION::ROTATE)
+				tc.transform.Rotate(deltaRotation);
+			if (m_ImGuizmoOperation == ImGuizmo::OPERATION::SCALE)
+				tc.transform.SetScale(scale);
+		}
+	}
+}
+
+bool Editor::DrawSliderFloat3(const std::string &name, float labelWidth, glm::vec3& vector, float resetValue)
+{
+	bool valuesChanged = false;
+
+	float regionWidth = ImGui::GetContentRegionAvail().x - labelWidth;
+	float sz = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+
+	ImVec2 buttonSize = { sz, sz };
+	float sliderSize = regionWidth / 3.0f - buttonSize.x;
+
+	ImGui::PushID(name.c_str());
+
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0.0f, 5.0f });
+	ImGui::Text(name.c_str());
+	ImGui::SameLine(labelWidth);
+
+	ImGui::SetNextItemWidth(sliderSize);
+	if (ImGui::DragFloat("##x", &vector[0], 0.1f, 0.0f, 0.0f, "%.3f"))
+		valuesChanged = true;
+
+	ImGui::SameLine();
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+	if (ImGui::Button("X", buttonSize)) {
+		vector.x = resetValue;
+		valuesChanged = true;
+	}
+	ImGui::PopStyleColor(3);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(sliderSize);
+	if (ImGui::DragFloat("##y", &vector[1], 0.1f, 0.0f, 0.0f, "%.3f"))
+		valuesChanged = true;
+
+	ImGui::SameLine();
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+	if (ImGui::Button("Y", buttonSize)) {
+		vector.y = resetValue;
+		valuesChanged = true;
+	}
+	ImGui::PopStyleColor(3);
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(sliderSize);
+	if (ImGui::DragFloat("##z", &vector[2], 0.1f, 0.0f, 0.0f, "%.3f"))
+		valuesChanged = true;
+
+	ImGui::SameLine();
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+	if (ImGui::Button("Z", buttonSize)) {
+		vector.z = resetValue;
+		valuesChanged = true;
+	}
+	ImGui::PopStyleColor(3);
+
+	ImGui::PopStyleVar(2);	// Item Spacing, Frame Rounding
+
+	ImGui::PopID();
+
+	return valuesChanged;
 }

@@ -13,3 +13,7 @@
 #include "Graphics/Framebuffer.h"
 
 #include "Util/Math.h"
+
+#include "Scene/Scene.h"
+#include "Scene/Entity.h"
+#include "Scene/Components.h"

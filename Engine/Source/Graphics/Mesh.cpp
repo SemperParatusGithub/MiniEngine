@@ -324,6 +324,6 @@ namespace Engine
 
 		m_Pipeline.Create();
 
-		m_Shader = MakeShared<Shader>("Assets/Shaders/PBR.glsl");
+		m_Shader = Renderer::GetShader("PBR");
 	}
 }

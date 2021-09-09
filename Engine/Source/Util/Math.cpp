@@ -9,13 +9,13 @@ namespace Engine
 	// Checks if ray intersects with triangle by using the Möller–Trumbore intersection algorithm
 	// Wikipedia: https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm 
 
-	bool Math::RayIntersectsTriangle(Ray ray, Triangle triangle)
+	bool Math::RayIntersectsTriangle(Ray ray, Triangle triangle, float &distance)
 	{
 		constexpr float EPSILON = 0.0000001;
 
-		glm::vec3 vertex0 = triangle.v1.position;;
-		glm::vec3 vertex1 = triangle.v2.position;;
-		glm::vec3 vertex2 = triangle.v3.position;;
+		glm::vec3 vertex0 = triangle.v1.position;
+		glm::vec3 vertex1 = triangle.v2.position;
+		glm::vec3 vertex2 = triangle.v3.position;
 
 		glm::vec3 edge1, edge2, h, s, q;
 		float a, f, u, v;
@@ -47,8 +47,10 @@ namespace Engine
 		float t = f * glm::dot(edge2, q);
 
 		// ray intersection
-		if (t > EPSILON)
+		if (t > EPSILON) {
+			distance = glm::length(ray.origin + ray.direction * t);
 			return true;
+		}
 		// This means that there is a line intersection but not a ray intersection.
 		else
 			return false;

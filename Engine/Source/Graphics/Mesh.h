@@ -52,6 +52,8 @@ namespace Engine
 		std::vector<Material> &GetMaterials();
 		std::vector<SubMesh> &GetSubMeshes();
 
+		const std::string& GetFilepath() const { return m_Filepath; }
+
 		SharedPtr<Shader> GetShader() { return m_Shader; }
 
 		auto begin() const noexcept { return m_SubMeshes.begin(); }

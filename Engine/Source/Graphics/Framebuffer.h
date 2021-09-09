@@ -10,7 +10,7 @@ namespace Engine
 	{
 		None = 0,
 
-		RGBA8,
+		RGBA8, RGBA32F,
 		DEPTH24STENCIL8
 	};
 
