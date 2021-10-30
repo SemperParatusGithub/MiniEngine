@@ -11,6 +11,7 @@ group "Dependencies"
 	include "../Engine/External/GLFW"
 	include "../Engine/External/Glad"
 	include "../Engine/External/imgui"
+	include "../Engine/External/Box2D"
 group ""
 
 group "Engine"

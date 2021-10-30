@@ -1,11 +1,14 @@
 #pragma once
 #include "Core/EngineBase.h"
+#include "Core/Event.h"
 
 #include <glm/glm.hpp>
 #include <entt/entt.hpp>
 
 #include <array>
 
+
+class b2World;
 
 namespace Engine
 {
@@ -30,6 +33,13 @@ namespace Engine
 		float exposure = 1.0f;
 	};
 
+	enum class SceneState
+	{
+		Editing = 0,
+		Playing,
+		Pausing
+	};
+
 
 	class Entity;
 
@@ -45,10 +55,20 @@ namespace Engine
 		const entt::registry& GetRegistry() const { return m_Registry; }
 		entt::registry &GetRegistry() { return m_Registry; }
 
+		void OnUpdate(float delta);
+		void OnEvent(Event& e);
+
+		void Play();
+		void Pause();
+		void Reset();
+
 	public:
 		Environment environment;
 
 	private:
+		SceneState m_SceneState = SceneState::Editing;
+
 		entt::registry m_Registry;
+		b2World* m_PhysicsWorld { nullptr };
 	};
 }

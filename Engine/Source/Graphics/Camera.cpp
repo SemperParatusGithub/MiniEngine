@@ -280,4 +280,98 @@ namespace Engine
 		else
 			return m_FPSCamera.GetProjectionViewMatrix();
 	}
+
+	// ----------------------------------- Scene Camera -----------------------------------
+	SceneCamera::SceneCamera()
+	{
+		RecalculateCameraMatrices();
+	}
+
+	void SceneCamera::SetBounds(float width, float height)
+	{
+		m_ViewportWidth = width;
+		m_ViewportHeight = height;
+
+		RecalculateCameraMatrices();
+	}
+
+	std::pair<float, float> SceneCamera::GetBounds() const
+	{
+		return std::pair<float, float>(m_ViewportWidth, m_ViewportHeight);
+	}
+
+	void SceneCamera::SetFOV(float FOV)
+	{
+		m_FOV = FOV;
+
+		RecalculateCameraMatrices();
+	}
+	float SceneCamera::GetFOV() const
+	{
+		return m_FOV;
+	}
+
+	void SceneCamera::SetNearClip(float nearClip)
+	{
+		m_NearClip = nearClip;
+
+		RecalculateCameraMatrices();
+	}
+	void SceneCamera::SetFarClip(float farClip)
+	{
+		m_FarClip = farClip;
+
+		RecalculateCameraMatrices();
+	}
+
+	float SceneCamera::GetNearClip() const
+	{
+		return m_NearClip;
+	}
+	float SceneCamera::GetFarClip() const
+	{
+		return m_FarClip;
+	}
+
+	void SceneCamera::SetPosition(const glm::vec3 &position)
+	{
+		m_Position = position;
+
+		RecalculateCameraMatrices();
+	}
+	void SceneCamera::SetRotation(const glm::vec3& rotation)
+	{
+		m_Rotation = rotation;
+
+		RecalculateCameraMatrices();
+	}
+
+	const glm::vec3& SceneCamera::GetPosition() const
+	{
+		return m_Position;
+	}
+	const glm::vec3& SceneCamera::GetRotation() const
+	{
+		return m_Rotation;
+	}
+
+	const glm::mat4& SceneCamera::GetProjectionViewMatrix() const
+	{
+		return m_ProjectionView;
+	}
+
+	void SceneCamera::RecalculateCameraMatrices()
+	{
+		m_AspectRatio = m_ViewportWidth / m_ViewportHeight;
+
+		m_Projection = glm::perspective(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
+		m_View = glm::translate(glm::mat4(1.0f), m_Position);
+
+		if (m_Rotation != glm::vec3(0.0f))
+			m_View *= glm::toMat4(glm::quat(m_Rotation));
+
+		m_View = glm::inverse(m_View);
+
+		m_ProjectionView = m_Projection * m_View;
+	}
 }

@@ -120,4 +120,48 @@ namespace Engine
 		OrbitCamera m_OrbitCamera;
 		FPSCamera m_FPSCamera;
 	};
+
+	class SceneCamera
+	{
+	public:
+		SceneCamera();
+
+		void SetBounds(float width, float height);
+		std::pair<float, float> GetBounds() const;
+
+		void SetFOV(float FOV);
+		float GetFOV() const;
+
+		void SetNearClip(float nearClip);
+		void SetFarClip(float farClip);
+
+		float GetNearClip() const;
+		float GetFarClip() const;
+
+		void SetPosition(const glm::vec3& position);
+		void SetRotation(const glm::vec3& rotation);
+
+		const glm::vec3& GetPosition() const;
+		const glm::vec3& GetRotation() const;
+
+		const glm::mat4& GetProjectionViewMatrix() const;
+
+	private:
+		void RecalculateCameraMatrices();
+
+	private:
+		glm::mat4 m_Projection, m_View;
+		glm::mat4 m_ProjectionView;
+
+		glm::vec3 m_Position = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 m_Rotation = { 0.0f, 0.0f, 0.0f };
+
+		float m_NearClip = 0.1f, m_FarClip = 1000.0f;
+		float m_AspectRatio = 1.78f;
+
+		float m_FOV = 45.0f;
+		float m_Zoom = 1.0f;
+
+		float m_ViewportWidth = 1280.0f, m_ViewportHeight = 720.0f;
+	};
 }

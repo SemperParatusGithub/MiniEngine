@@ -99,9 +99,47 @@ void Editor::OnCreate()
 
 	m_Scene.environment = CreateEnvironment("Assets/Environments/Clouds.hdr");
 
-	auto entity = m_Scene.CreateEntity("Test Scene");
-	entity.Add<Engine::MeshComponent>("Assets/Meshes/TestScene.fbx");
-	entity.Get<Engine::TransformComponent>().transform.Scale(glm::vec3(0.15f));
+	//auto entity = m_Scene.CreateEntity("Test Scene");
+	//entity.Add<Engine::MeshComponent>("Assets/Meshes/TestScene.fbx");
+	//entity.Get<Engine::TransformComponent>().transform.Scale(glm::vec3(0.15f));
+
+	std::vector<Engine::Transform> staticBodies = {
+		Engine::Transform({ 0.0f,  0.0f, 0.0f }, {0.0f, 0.0f,   0.0f}, {20.0f, 1.0f, 5.0f}),	// Ground
+		Engine::Transform({-3.0f,  4.0f, 0.0f }, {0.0f, 0.0f, glm::radians(-30.0f)}, {5.0f, 1.0f, 1.0f}),
+		Engine::Transform({ 3.0f,  7.0f, 0.0f }, {0.0f, 0.0f,  glm::radians(30.0f)}, {5.0f, 1.0f, 1.0f}),
+		Engine::Transform({-3.0f, 10.0f, 0.0f }, {0.0f, 0.0f, glm::radians(-30.0f)}, {5.0f, 1.0f, 1.0f})
+	};
+
+	std::vector<Engine::Transform> dynamicBodies = {
+		Engine::Transform({ 2.0f, 11.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),	// Ground
+		Engine::Transform({-2.0f, 12.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),
+		Engine::Transform({ 2.0f, 13.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),
+		Engine::Transform({-2.0f, 14.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f})
+	};
+
+	for (std::size_t i = 0; i < staticBodies.size(); i++)
+	{
+		auto& transform = staticBodies[i];
+		std::string name = "Static Body #" + std::to_string(i);
+		auto entity = m_Scene.CreateEntity(name);
+		entity.Get<Engine::TransformComponent>().transform = transform;
+		entity.Add<Engine::MeshComponent>("Assets/Meshes/Cube.fbx");
+		entity.Add<Engine::Rigidbody2DComponent>();
+		entity.Add<Engine::BoxCollider2DComponent>();
+	}
+
+	for (std::size_t i = 0; i < dynamicBodies.size(); i++)
+	{
+		auto& transform = dynamicBodies[i];
+		std::string name = "Dynamic Body #" + std::to_string(i);
+		auto entity = m_Scene.CreateEntity(name);
+		entity.Get<Engine::TransformComponent>().transform = transform;
+		entity.Add<Engine::MeshComponent>("Assets/Meshes/Cube.fbx");
+		auto& body = entity.Add<Engine::Rigidbody2DComponent>();
+		auto& collider = entity.Add<Engine::BoxCollider2DComponent>();
+		body.Type = Engine::Rigidbody2DComponent::BodyType::Dynamic;
+		collider.Restitution = 0.5f;
+	}
 }
 
 void Editor::OnDestroy()
@@ -127,10 +165,11 @@ void Editor::OnUpdate(float delta)
 	Engine::Renderer::Clear();
 
 	m_Camera.OnUpdate(delta);
-
+	m_Scene.OnUpdate(delta);
 
 	if (m_ViewportSizeChanged)
 	{
+		// Resize SceneCamera
 		m_Camera.OnResize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
 		m_MainFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
 		m_FinalFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
@@ -305,7 +344,7 @@ void Editor::MainRenderPass()
 		shader->SetUniformInt("u_ImageCube", 0);
 		shader->SetUniformFloat("u_TextureLod", m_Scene.environment.textureLod);
 		shader->SetUniformFloat("u_Exposure", m_Scene.environment.exposure);
-
+		
 		m_Scene.environment.radianceMap->Bind(0);
 
 		Engine::Renderer::SubmitSkybox(m_Scene.environment.radianceMap, shader);
@@ -538,10 +577,14 @@ void Editor::DrawInspector()
 {
 	ImGui::Begin("Inspector");
 
-	if (m_SelectedEntity)
-	{
-		Engine::Entity entity = m_SelectedEntity;
+	if (!m_SelectedEntity) {
+		ImGui::End();
+		return;
+	}
+	Engine::Entity entity = m_SelectedEntity;
 
+	// ID Component
+	{
 		auto& idc = entity.Get<Engine::IDComponent>();
 
 		char buffer[64];
@@ -575,25 +618,41 @@ void Editor::DrawInspector()
 					if (!entity.Has<Engine::MeshComponent>())
 						entity.Add<Engine::MeshComponent>(Engine::MeshComponent{});
 
+				if (ImGui::MenuItem("Camera"))
+					if (!entity.Has<Engine::CameraComponent>())
+						entity.Add<Engine::CameraComponent>(Engine::CameraComponent{});
+
+				if (ImGui::MenuItem("Box Collider 2D"))
+					if (!entity.Has<Engine::BoxCollider2DComponent>())
+						entity.Add<Engine::BoxCollider2DComponent>(Engine::BoxCollider2DComponent{});
+
+				if (ImGui::MenuItem("Rigid Body 3D"))
+					if (!entity.Has<Engine::Rigidbody2DComponent>())
+						entity.Add<Engine::Rigidbody2DComponent>(Engine::Rigidbody2DComponent{});
+
 				ImGui::EndMenu();
 			}
 			if (ImGui::MenuItem("Delete Entity"))
 			{
 				entity.Destroy();
+				ImGui::EndPopup();
+				ImGui::End();
+				return;
 			}
 
 			ImGui::EndPopup();
 		}
-		if (!entity)
-			goto there;
-		if (!entity.Has<Engine::TransformComponent>())
-			goto here;
+	}
+
+	// Transform Component
+	if (entity.Has<Engine::TransformComponent>())
+	{
 		auto& transform = entity.Get<Engine::TransformComponent>().transform;
 		auto translation = entity.Get<Engine::TransformComponent>().transform.GetTranslation();
 		auto rotation = entity.Get<Engine::TransformComponent>().transform.GetRotation();
 		auto scale = entity.Get<Engine::TransformComponent>().transform.GetScale();
 
-		if (ImGui::CollapsingHeader("Transform Component"))
+		if (ImGui::CollapsingHeader("Transform Settings"))
 		{
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDown(1))
 				ImGui::OpenPopup("Component Options##Transform");
@@ -619,13 +678,14 @@ void Editor::DrawInspector()
 
 			ImGui::EndPopup();
 		}
+	}
 
-	here:
-		if (!entity.Has<Engine::MeshComponent>())
-			goto there;
+	// Mesh Component
+	if (entity.Has<Engine::MeshComponent>())
+	{
 		auto& mc = entity.Get<Engine::MeshComponent>();
 
-		if (ImGui::CollapsingHeader("Mesh Component"))
+		if (ImGui::CollapsingHeader("Mesh Settings"))
 		{
 			ImGui::TextWrapped("Filepath: %s", mc.mesh->GetFilepath().c_str());
 			if (ImGui::Button("Load"))
@@ -637,15 +697,15 @@ void Editor::DrawInspector()
 			static bool showMaterials = false;
 			if (ImGui::Button("Open Material Settings"))
 				showMaterials = true;
-			
+
 			if (showMaterials && !mc.mesh->GetSubMeshes().empty())
 			{
 				auto& subMaterials = mc.mesh->GetMaterials();
-			
+
 				ImGui::Begin("Materials", &showMaterials, ImGuiWindowFlags_NoDocking);
-			
+
 				static u32 selected = 0;
-			
+
 				ImGui::BeginChild("left pane", ImVec2(150, 0), true);
 				for (int i = 0; i < subMaterials.size(); i++)
 				{
@@ -655,10 +715,10 @@ void Editor::DrawInspector()
 				}
 				ImGui::EndChild();
 				ImGui::SameLine();
-			
+
 				// If the Mesh changed make sure we don't go out of bounds
 				selected = selected >= subMaterials.size() ? 0 : selected;
-			
+
 				ImGui::BeginChild("Settings");
 				if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
 				{
@@ -673,7 +733,7 @@ void Editor::DrawInspector()
 					if (ImGui::BeginTabItem("Textures"))
 					{
 						auto& textures = subMaterials[selected].GetTextures();
-			
+
 						auto CheckForClickAndSetTexture = [](SharedPtr<Engine::Texture>& texture)
 						{
 							if (ImGui::IsItemClicked())
@@ -683,55 +743,55 @@ void Editor::DrawInspector()
 									texture = MakeShared<Engine::Texture>(filepath);
 							}
 						};
-			
+
 						// Albedo
 						{
 							ImGui::Text("Albedo Texture");
 							if (!textures.albedo->IsLoaded())
 								ImGui::Image(0, ImVec2(64.0f, 64.0f));
 							else
-								ImGui::Image((ImTextureID) textures.albedo->GetRendererID(), ImVec2(64.0f, 64.0f));
-			
+								ImGui::Image((ImTextureID)textures.albedo->GetRendererID(), ImVec2(64.0f, 64.0f));
+
 							CheckForClickAndSetTexture(textures.albedo);
 							ImGui::Checkbox("Enable##Albedo", &textures.useAlbedo);
 						}
-			
+
 						// Normal Map
 						{
 							ImGui::Text("Normal Map");
 							if (!textures.normal->IsLoaded())
 								ImGui::Image(0, ImVec2(64.0f, 64.0f));
 							else
-								ImGui::Image((ImTextureID) textures.normal->GetRendererID(), ImVec2(64.0f, 64.0f));
-			
+								ImGui::Image((ImTextureID)textures.normal->GetRendererID(), ImVec2(64.0f, 64.0f));
+
 							CheckForClickAndSetTexture(textures.normal);
 							ImGui::Checkbox("Enable##Normal", &textures.useNormal);
 						}
-			
+
 						// Metalness
 						{
 							ImGui::Text("Metalness Texture");
 							if (!textures.metalness->IsLoaded())
 								ImGui::Image(0, ImVec2(64.0f, 64.0f));
 							else
-								ImGui::Image((ImTextureID) textures.metalness->GetRendererID(), ImVec2(64.0f, 64.0f));
-			
+								ImGui::Image((ImTextureID)textures.metalness->GetRendererID(), ImVec2(64.0f, 64.0f));
+
 							CheckForClickAndSetTexture(textures.metalness);
 							ImGui::Checkbox("Enable##Metalness", &textures.useMetalness);
 						}
-			
+
 						// Roughness
 						{
 							ImGui::Text("Roughness Texture");
 							if (!textures.roughness->IsLoaded())
 								ImGui::Image(0, ImVec2(64.0f, 64.0f));
 							else
-								ImGui::Image((ImTextureID) textures.roughness->GetRendererID(), ImVec2(64.0f, 64.0f));
-			
+								ImGui::Image((ImTextureID)textures.roughness->GetRendererID(), ImVec2(64.0f, 64.0f));
+
 							CheckForClickAndSetTexture(textures.roughness);
 							ImGui::Checkbox("Enable##Roughness", &textures.useRoughness);
 						}
-			
+
 						ImGui::EndTabItem();
 					}
 					ImGui::EndTabBar();
@@ -742,7 +802,63 @@ void Editor::DrawInspector()
 		}
 	}
 
-	there:
+	// Scene Camera
+	if (entity.Has<Engine::CameraComponent>())
+	{
+		auto& camera = entity.Get<Engine::CameraComponent>().camera;
+
+		if (ImGui::CollapsingHeader("Camera Settings"))
+		{
+			ImGui::Text("Perspective Camera");
+
+			float FOV = camera.GetFOV();
+			if (ImGui::SliderFloat("FOV", &FOV, 40.0f, 100.0f))
+				camera.SetFOV(FOV);
+
+			float nearClip = camera.GetNearClip();
+			float farClip = camera.GetFarClip();
+
+			if (ImGui::SliderFloat("Near Clip", &nearClip, 0.0f, 1000.0f))
+				camera.SetNearClip(nearClip);
+			if (ImGui::SliderFloat("Far Clip", &farClip, 0.0f, 1000.0f))
+				camera.SetFarClip(farClip);
+		}
+	}
+
+	// BoxCollider 2D
+	if (entity.Has<Engine::BoxCollider2DComponent>())
+	{
+		auto& collider = entity.Get<Engine::BoxCollider2DComponent>();
+
+		if (ImGui::CollapsingHeader("Box Collider 2D Settings"))
+		{
+			ImGui::SliderFloat2("Size", &collider.Size[0], 0.0f, 1000.0f);
+			ImGui::SliderFloat2("Offset", &collider.Offset[0], 0.0f, 1000.0f);
+
+			ImGui::SliderFloat("Density", &collider.Density, 0.0f, 10.0f);
+			ImGui::SliderFloat("Friction", &collider.Friction, 0.0f, 10.0f);
+			ImGui::SliderFloat("Restitution", &collider.Restitution, 0.0f, 10.0f);
+			ImGui::SliderFloat("RestitutionThreshold", &collider.RestitutionThreshold, 0.0f, 10.0f);
+		}
+	}
+
+	// Rigid Body 2D
+	if (entity.Has<Engine::Rigidbody2DComponent>())
+	{
+		auto& body = entity.Get<Engine::Rigidbody2DComponent>();
+
+		if (ImGui::CollapsingHeader("Rigid Body 2D Settings"))
+		{
+			ImGui::SliderInt("BodyType", (int*)&body.Type, 0, 2);
+			switch (body.Type)
+			{
+				case Engine::Rigidbody2DComponent::BodyType::Static:    ImGui::Text("BodyType::Static");	break;
+				case Engine::Rigidbody2DComponent::BodyType::Dynamic:   ImGui::Text("BodyType::Dynamic");	break;
+				case Engine::Rigidbody2DComponent::BodyType::Kinematic: ImGui::Text("BodyType::Kinematic");	break;
+			}
+		}
+	}
+
 	ImGui::End();
 }
 
@@ -783,6 +899,12 @@ void Editor::DrawDebugInfo()
 		auto name = m_SelectedEntity.Get<Engine::IDComponent>().name;
 		ImGui::Text("Selected entity: %s", name.c_str());
 	}
+
+	if (ImGui::Button("Play"))
+		m_Scene.Play();
+
+	if (ImGui::Button("Reset"))
+		m_Scene.Reset();
 
 	ImGui::End();
 }

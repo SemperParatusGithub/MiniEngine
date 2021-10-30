@@ -28,7 +28,11 @@ project "Engine"
 		-- glm
 		"External/glm/glm/**.hpp",
 		"External/glm/glm/**.inl",
-		
+
+		--box2d
+		"External/box2d/include/box2d/**.h",
+		"External/box2d/src/**.cpp",
+
 		-- ImGuizmo
 		"External/ImGuizmo/ImGuizmo.h",
 		"External/ImGuizmo/ImGuizmo.cpp",
@@ -55,7 +59,8 @@ project "Engine"
 		"../Engine/External/entt/include",
 		"../Engine/External/ImGuizmo",
 		"../Engine/External/cereal/include",
-		"../Engine/External/assimp/include"
+		"../Engine/External/assimp/include",
+		"../Engine/External/box2d/include"
 	}
 
 	links
@@ -63,8 +68,12 @@ project "Engine"
 		"GLFW",
 		"Glad",
 		"ImGui",
+		"Box2D",
 		"opengl32.lib"
 	}
+
+	filter "files:External/**.cpp"
+		flags { "NoPCH" }
 
 	filter "system:windows"
 		systemversion "latest"
