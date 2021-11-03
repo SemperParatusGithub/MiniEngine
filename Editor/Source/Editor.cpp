@@ -165,7 +165,7 @@ void Editor::OnUpdate(float delta)
 	Engine::Renderer::Clear();
 
 	m_Camera.OnUpdate(delta);
-	m_Scene.OnUpdate(delta);
+	m_Scene.OnUpdate(m_SimulationSpeed * delta);
 
 	if (m_ViewportSizeChanged)
 	{
@@ -184,6 +184,21 @@ void Editor::OnUpdate(float delta)
 void Editor::OnEvent(Engine::Event &event)
 {
 	m_Camera.OnEvent(event);
+
+	if (Engine::Input::IsKeyPressed(Engine::Key::LeftControl))
+	{
+		if (event.type == Engine::EventType::KeyPressed && event.key.code == Engine::Key::D)
+		{
+			if (m_SelectedEntity)
+				m_SelectedEntity = m_Scene.DuplicateEntity(m_SelectedEntity);
+		}
+	}
+
+	if (event.type == Engine::EventType::KeyPressed && event.key.code == Engine::Key::Delete)
+	{
+		if (m_SelectedEntity)
+			m_SelectedEntity.Destroy();
+	}
 
 	if (event.type == Engine::EventType::MouseButtonPressed &&
 		event.mouse.code == Engine::Mouse::ButtonLeft && m_ViewportHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver())
@@ -622,13 +637,17 @@ void Editor::DrawInspector()
 					if (!entity.Has<Engine::CameraComponent>())
 						entity.Add<Engine::CameraComponent>(Engine::CameraComponent{});
 
+				if (ImGui::MenuItem("Rigid Body 2D"))
+					if (!entity.Has<Engine::Rigidbody2DComponent>())
+						entity.Add<Engine::Rigidbody2DComponent>(Engine::Rigidbody2DComponent{});
+
 				if (ImGui::MenuItem("Box Collider 2D"))
 					if (!entity.Has<Engine::BoxCollider2DComponent>())
 						entity.Add<Engine::BoxCollider2DComponent>(Engine::BoxCollider2DComponent{});
 
-				if (ImGui::MenuItem("Rigid Body 3D"))
-					if (!entity.Has<Engine::Rigidbody2DComponent>())
-						entity.Add<Engine::Rigidbody2DComponent>(Engine::Rigidbody2DComponent{});
+				if (ImGui::MenuItem(" Circle Collider 2D"))
+					if (!entity.Has<Engine::CircleCollider2DComponent>())
+						entity.Add<Engine::CircleCollider2DComponent>(Engine::CircleCollider2DComponent{});
 
 				ImGui::EndMenu();
 			}
@@ -842,6 +861,23 @@ void Editor::DrawInspector()
 		}
 	}
 
+	// BoxCollider 2D
+	if (entity.Has<Engine::CircleCollider2DComponent>())
+	{
+		auto& collider = entity.Get<Engine::CircleCollider2DComponent>();
+
+		if (ImGui::CollapsingHeader("Circle Collider 2D Settings"))
+		{
+			ImGui::SliderFloat("Radius", &collider.Radius, 0.0f, 1000.0f);
+			ImGui::SliderFloat2("Offset", &collider.Offset[0], 0.0f, 1000.0f);
+
+			ImGui::SliderFloat("Density", &collider.Density, 0.0f, 10.0f);
+			ImGui::SliderFloat("Friction", &collider.Friction, 0.0f, 10.0f);
+			ImGui::SliderFloat("Restitution", &collider.Restitution, 0.0f, 10.0f);
+			ImGui::SliderFloat("RestitutionThreshold", &collider.RestitutionThreshold, 0.0f, 10.0f);
+		}
+	}
+
 	// Rigid Body 2D
 	if (entity.Has<Engine::Rigidbody2DComponent>())
 	{
@@ -903,8 +939,13 @@ void Editor::DrawDebugInfo()
 	if (ImGui::Button("Play"))
 		m_Scene.Play();
 
+	if (ImGui::Button("Pause"))
+		m_Scene.Pause();
+
 	if (ImGui::Button("Reset"))
 		m_Scene.Reset();
+
+	ImGui::SliderFloat("Physics Simulation Speed", &m_SimulationSpeed, 0.0f, 2.0f);
 
 	ImGui::End();
 }

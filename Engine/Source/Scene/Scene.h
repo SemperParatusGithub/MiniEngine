@@ -51,6 +51,7 @@ namespace Engine
 
 		Entity CreateEntity();
 		Entity CreateEntity(const std::string name);
+		Entity DuplicateEntity(Entity entity);
 
 		const entt::registry& GetRegistry() const { return m_Registry; }
 		entt::registry &GetRegistry() { return m_Registry; }
@@ -62,6 +63,9 @@ namespace Engine
 		void Pause();
 		void Reset();
 
+	private:
+		void CopyRegistry(entt::registry& from, entt::registry& to);
+
 	public:
 		Environment environment;
 
@@ -69,6 +73,8 @@ namespace Engine
 		SceneState m_SceneState = SceneState::Editing;
 
 		entt::registry m_Registry;
+		entt::registry m_BackupRegistry;
+
 		b2World* m_PhysicsWorld { nullptr };
 	};
 }

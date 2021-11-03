@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/EngineBase.h"
 
+#include "Core/UUID.h"
+
 #include "Graphics/Transform.h"
 #include "Graphics/Mesh.h"
 
@@ -14,6 +16,7 @@ namespace Engine
 		IDComponent() : name("Unknown") {}
 		IDComponent(const std::string &name) : name(name) {}
 
+		UUID uuid;
 		std::string name;
 	};
 
@@ -68,6 +71,21 @@ namespace Engine
 
 		float Density = 1.0f;
 		float Friction = 0.5f;
+		float Restitution = 0.0f;
+		float RestitutionThreshold = 0.5f;
+
+		// Storage for runtime
+		// TODO: Move to Scene entity map
+		void* RuntimeFixture = nullptr;
+	};
+
+	struct CircleCollider2DComponent
+	{
+		glm::vec2 Offset = { 0.0f,0.0f };
+		float Radius = 0.5f;
+
+		float Density = 1.0f;
+		float Friction = 1.0f;
 		float Restitution = 0.0f;
 		float RestitutionThreshold = 0.5f;
 

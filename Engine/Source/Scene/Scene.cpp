@@ -5,6 +5,7 @@
 #include "Components.h"
 
 // Box2D
+#include <box2d/box2d.h>
 #include <box2d/b2_world.h>
 #include <box2d/b2_body.h>
 #include <box2d/b2_fixture.h>
@@ -24,6 +25,13 @@ namespace Engine
 
 		ME_ASSERT(false); // Unknown body type
 		return b2_staticBody;
+	}
+
+	template<typename Component>
+	void ReplaceComponent(entt::registry& from, entt::entity entFrom, entt::registry& to, entt::entity entTo)
+	{
+		if (from.has<Component>(entFrom))
+			to.emplace_or_replace<Component>(entTo, from.get<Component>(entFrom));
 	}
 
 	Entity Scene::CreateEntity()
@@ -49,6 +57,20 @@ namespace Engine
 		entity.Add<TransformComponent>(TransformComponent{});
 
 		return entity;
+	}
+
+	Entity Scene::DuplicateEntity(Entity entity)
+	{
+		auto& id = entity.Get<IDComponent>();
+		auto ent = CreateEntity(id.name);
+
+		ReplaceComponent<TransformComponent>(m_Registry, entity.GetEntity(), m_Registry, ent.GetEntity());
+		ReplaceComponent<MeshComponent>(m_Registry, entity.GetEntity(), m_Registry, ent.GetEntity());
+		ReplaceComponent<Rigidbody2DComponent>(m_Registry, entity.GetEntity(), m_Registry, ent.GetEntity());
+		ReplaceComponent<BoxCollider2DComponent>(m_Registry, entity.GetEntity(), m_Registry, ent.GetEntity());
+		ReplaceComponent<CircleCollider2DComponent>(m_Registry, entity.GetEntity(), m_Registry, ent.GetEntity());
+
+		return ent;
 	}
 
 	void Scene::OnUpdate(float delta)
@@ -83,6 +105,13 @@ namespace Engine
 	{
 		if (m_SceneState == SceneState::Playing)
 			return;
+
+		if (m_SceneState == SceneState::Pausing) {
+			m_SceneState = SceneState::Playing;
+			return;
+		}
+
+		CopyRegistry(m_Registry, m_BackupRegistry);
 
 		ME_INFO("Starting Scene");
 		m_SceneState = SceneState::Playing;
@@ -121,16 +150,57 @@ namespace Engine
 				fixtureDef.restitutionThreshold = bc2d.RestitutionThreshold;
 				body->CreateFixture(&fixtureDef);
 			}
+
+			if (entity.Has<CircleCollider2DComponent>())
+			{
+				auto& cc2d = entity.Get<CircleCollider2DComponent>();
+
+				b2CircleShape circleShape;
+				circleShape.m_radius = cc2d.Radius * transform.GetScale().x;
+
+				b2FixtureDef fixtureDef;
+				fixtureDef.shape = &circleShape;
+				fixtureDef.density = cc2d.Density;
+				fixtureDef.friction = cc2d.Friction;
+				fixtureDef.restitution = cc2d.Restitution;
+				fixtureDef.restitutionThreshold = cc2d.RestitutionThreshold;
+				body->CreateFixture(&fixtureDef);
+			}
 		}
 	}
 	void Scene::Pause()
 	{
+		if (m_SceneState != SceneState::Playing)	// Can't pause when we are not playing
+			return;
 		ME_INFO("Pausing Scene");
-		ME_ASSERT(false);	// Not implemented
+
+		m_SceneState = SceneState::Pausing;
 	}
 	void Scene::Reset()
 	{
+		if (m_SceneState == SceneState::Editing)
+			return;
 		ME_INFO("Resetting Scene");
 		m_SceneState = SceneState::Editing;
+
+		CopyRegistry(m_BackupRegistry, m_Registry);
+	}
+
+	void Scene::CopyRegistry(entt::registry& from, entt::registry& to)
+	{
+		to.clear();
+
+		auto all = from.view<IDComponent>();
+		for (auto& currentEntity : all)
+		{
+			auto newEnt = to.create();
+
+			ReplaceComponent<IDComponent>(from, currentEntity, to, newEnt);
+			ReplaceComponent<TransformComponent>(from, currentEntity, to, newEnt);
+			ReplaceComponent<MeshComponent>(from, currentEntity, to, newEnt);
+			ReplaceComponent<Rigidbody2DComponent>(from, currentEntity, to, newEnt);
+			ReplaceComponent<BoxCollider2DComponent>(from, currentEntity, to, newEnt);
+			ReplaceComponent<CircleCollider2DComponent>(from, currentEntity, to, newEnt);
+		}
 	}
 }

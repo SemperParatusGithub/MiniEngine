@@ -79,6 +79,8 @@ private:
 	bool m_EnableTonemapping = true;
 	float m_Exposure = 1.0f;
 
+	float m_SimulationSpeed = 1.0f;
+
 	Engine::Scene m_Scene;
 	Engine::Entity m_SelectedEntity;
 
