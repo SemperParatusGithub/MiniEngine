@@ -77,7 +77,7 @@ Editor::~Editor()
 
 void Editor::OnCreate()
 {
-	auto &window = Application::GetInstance()->GetWindow();
+	auto& window = Application::GetInstance()->GetWindow();
 	window->Maximize();
 	window->SetVSync(false);
 
@@ -97,48 +97,49 @@ void Editor::OnCreate()
 	};
 	m_FinalFramebuffer->Create();
 
-	m_Scene.environment = CreateEnvironment("Assets/Environments/Clouds.hdr");
+	m_EditorScene = MakeShared<Engine::Scene>();
+	m_RuntimeScene = MakeShared<Engine::Scene>();
+	m_EditorScene->environment = CreateEnvironment("Assets/Environments/Clouds.hdr");
 
-	//auto entity = m_Scene.CreateEntity("Test Scene");
-	//entity.Add<Engine::MeshComponent>("Assets/Meshes/TestScene.fbx");
-	//entity.Get<Engine::TransformComponent>().transform.Scale(glm::vec3(0.15f));
-
-	std::vector<Engine::Transform> staticBodies = {
-		Engine::Transform({ 0.0f,  0.0f, 0.0f }, {0.0f, 0.0f,   0.0f}, {20.0f, 1.0f, 5.0f}),	// Ground
-		Engine::Transform({-3.0f,  4.0f, 0.0f }, {0.0f, 0.0f, glm::radians(-30.0f)}, {5.0f, 1.0f, 1.0f}),
-		Engine::Transform({ 3.0f,  7.0f, 0.0f }, {0.0f, 0.0f,  glm::radians(30.0f)}, {5.0f, 1.0f, 1.0f}),
-		Engine::Transform({-3.0f, 10.0f, 0.0f }, {0.0f, 0.0f, glm::radians(-30.0f)}, {5.0f, 1.0f, 1.0f})
-	};
-
-	std::vector<Engine::Transform> dynamicBodies = {
-		Engine::Transform({ 2.0f, 11.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),	// Ground
-		Engine::Transform({-2.0f, 12.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),
-		Engine::Transform({ 2.0f, 13.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),
-		Engine::Transform({-2.0f, 14.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f})
-	};
-
-	for (std::size_t i = 0; i < staticBodies.size(); i++)
+	// Test Scene
 	{
-		auto& transform = staticBodies[i];
-		std::string name = "Static Body #" + std::to_string(i);
-		auto entity = m_Scene.CreateEntity(name);
-		entity.Get<Engine::TransformComponent>().transform = transform;
-		entity.Add<Engine::MeshComponent>("Assets/Meshes/Cube.fbx");
-		entity.Add<Engine::Rigidbody2DComponent>();
-		entity.Add<Engine::BoxCollider2DComponent>();
-	}
+		std::vector<Engine::Transform> staticBodies = {
+			Engine::Transform({ 0.0f,  0.0f, 0.0f }, {0.0f, 0.0f,   0.0f}, {20.0f, 1.0f, 5.0f}),	// Ground
+			Engine::Transform({-3.0f,  4.0f, 0.0f }, {0.0f, 0.0f, glm::radians(-30.0f)}, {5.0f, 1.0f, 1.0f}),
+			Engine::Transform({ 3.0f,  7.0f, 0.0f }, {0.0f, 0.0f,  glm::radians(30.0f)}, {5.0f, 1.0f, 1.0f}),
+			Engine::Transform({-3.0f, 10.0f, 0.0f }, {0.0f, 0.0f, glm::radians(-30.0f)}, {5.0f, 1.0f, 1.0f})
+		};
 
-	for (std::size_t i = 0; i < dynamicBodies.size(); i++)
-	{
-		auto& transform = dynamicBodies[i];
-		std::string name = "Dynamic Body #" + std::to_string(i);
-		auto entity = m_Scene.CreateEntity(name);
-		entity.Get<Engine::TransformComponent>().transform = transform;
-		entity.Add<Engine::MeshComponent>("Assets/Meshes/Cube.fbx");
-		auto& body = entity.Add<Engine::Rigidbody2DComponent>();
-		auto& collider = entity.Add<Engine::BoxCollider2DComponent>();
-		body.Type = Engine::Rigidbody2DComponent::BodyType::Dynamic;
-		collider.Restitution = 0.5f;
+		std::vector<Engine::Transform> dynamicBodies = {
+			Engine::Transform({ 2.0f, 11.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),	// Ground
+			Engine::Transform({-2.0f, 12.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),
+			Engine::Transform({ 2.0f, 13.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f}),
+			Engine::Transform({-2.0f, 14.0f, 0.0f }, {0.0f, 0.0f, glm::radians(45.0f)}, {1.0f, 1.0f, 1.0f})
+		};
+
+		for (std::size_t i = 0; i < staticBodies.size(); i++)
+		{
+			auto& transform = staticBodies[i];
+			std::string name = "Static Body #" + std::to_string(i);
+			auto entity = m_EditorScene->CreateEntity(name);
+			entity.Get<Engine::TransformComponent>().transform = transform;
+			entity.Add<Engine::MeshComponent>("Assets/Meshes/Cube.fbx");
+			entity.Add<Engine::Rigidbody2DComponent>();
+			entity.Add<Engine::BoxCollider2DComponent>();
+		}
+
+		for (std::size_t i = 0; i < dynamicBodies.size(); i++)
+		{
+			auto& transform = dynamicBodies[i];
+			std::string name = "Dynamic Body #" + std::to_string(i);
+			auto entity = m_EditorScene->CreateEntity(name);
+			entity.Get<Engine::TransformComponent>().transform = transform;
+			entity.Add<Engine::MeshComponent>("Assets/Meshes/Cube.fbx");
+			auto& body = entity.Add<Engine::Rigidbody2DComponent>();
+			auto& collider = entity.Add<Engine::BoxCollider2DComponent>();
+			body.Type = Engine::Rigidbody2DComponent::BodyType::Dynamic;
+			collider.Restitution = 0.5f;
+		}
 	}
 }
 
@@ -148,37 +149,58 @@ void Editor::OnDestroy()
 
 void Editor::OnUpdate(float delta)
 {
-	// Gizmos
-	if (Engine::Input::IsKeyPressed(Engine::Key::LeftControl) && !ImGuizmo::IsUsing())
+	switch (m_SceneState)
 	{
-		if (Engine::Input::IsKeyPressed(Engine::Key::D1))
-			m_ImGuizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
-		if (Engine::Input::IsKeyPressed(Engine::Key::D2))
-			m_ImGuizmoOperation = ImGuizmo::OPERATION::ROTATE;
-		if (Engine::Input::IsKeyPressed(Engine::Key::D3))
-			m_ImGuizmoOperation = ImGuizmo::OPERATION::SCALE;
-		if (Engine::Input::IsKeyPressed(Engine::Key::D0))
-			m_ImGuizmoOperation = -1;
+		case SceneState::Editing:
+		{
+			// Gizmos
+			if (Engine::Input::IsKeyPressed(Engine::Key::LeftControl) && !ImGuizmo::IsUsing())
+			{
+				if (Engine::Input::IsKeyPressed(Engine::Key::D1))
+					m_ImGuizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+				if (Engine::Input::IsKeyPressed(Engine::Key::D2))
+					m_ImGuizmoOperation = ImGuizmo::OPERATION::ROTATE;
+				if (Engine::Input::IsKeyPressed(Engine::Key::D3))
+					m_ImGuizmoOperation = ImGuizmo::OPERATION::SCALE;
+				if (Engine::Input::IsKeyPressed(Engine::Key::D0))
+					m_ImGuizmoOperation = -1;
+			}
+
+			break;
+		}
+
+		case SceneState::Playing:
+		{
+			m_RuntimeScene->OnUpdate(delta);
+			break;
+		}
+
+		case SceneState::Pausing:
+		{
+
+			break;
+		}
 	}
 
-	Engine::Renderer::SetClearColor(glm::vec4{ 0.7f, 0.7f, 0.7f, 1.0f });
-	Engine::Renderer::Clear();
 
 	m_Camera.OnUpdate(delta);
-	m_Scene.OnUpdate(m_SimulationSpeed * delta);
 
 	if (m_ViewportSizeChanged)
 	{
-		// Resize SceneCamera
 		m_Camera.OnResize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
 		m_MainFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
 		m_FinalFramebuffer->Resize(static_cast<u32>(m_ViewportSize.x), static_cast<u32>(m_ViewportSize.y));
 		m_ViewportSizeChanged = false;
 	}
 
-	MainRenderPass();
+	// Render
+	{
+		Engine::Renderer::SetClearColor(glm::vec4{ 0.7f, 0.7f, 0.7f, 1.0f });
+		Engine::Renderer::Clear();
 
-	CompositionRenderPass();
+		MainRenderPass();
+		CompositionRenderPass();
+	}
 }
 
 void Editor::OnEvent(Engine::Event &event)
@@ -190,7 +212,7 @@ void Editor::OnEvent(Engine::Event &event)
 		if (event.type == Engine::EventType::KeyPressed && event.key.code == Engine::Key::D)
 		{
 			if (m_SelectedEntity)
-				m_SelectedEntity = m_Scene.DuplicateEntity(m_SelectedEntity);
+				m_SelectedEntity = m_EditorScene->DuplicateEntity(m_SelectedEntity);
 		}
 	}
 
@@ -200,17 +222,17 @@ void Editor::OnEvent(Engine::Event &event)
 			m_SelectedEntity.Destroy();
 	}
 
-	if (event.type == Engine::EventType::MouseButtonPressed &&
+	if (event.type == Engine::EventType::MouseButtonPressed && m_SceneState != SceneState::Playing &&
 		event.mouse.code == Engine::Mouse::ButtonLeft && m_ViewportHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver())
 	{
 		m_SelectedEntity = Engine::Entity();
 
 		auto mouseRay = CastRay();
 
-		auto view = m_Scene.GetRegistry().view<Engine::TransformComponent, Engine::MeshComponent>();
+		auto view = m_EditorScene->GetRegistry().view<Engine::TransformComponent, Engine::MeshComponent>();
 		view.each([&](const entt::entity ent, const Engine::TransformComponent& tc, const Engine::MeshComponent& mc)
 			{
-				auto entity = Engine::Entity(ent, &m_Scene);
+				auto entity = Engine::Entity(ent, m_EditorScene.get());
 				auto& subMeshes = mc.mesh->GetSubMeshes();
 
 				for (u32 i = 0; i < subMeshes.size(); i++)
@@ -231,7 +253,7 @@ void Editor::OnEvent(Engine::Event &event)
 						float distance; 
 						if (Engine::Math::RayIntersectsTriangle(ray, triangle, distance))
 						{
-							m_SelectedEntity = Engine::Entity(ent, &m_Scene);
+							m_SelectedEntity = Engine::Entity(ent, m_EditorScene.get());
 						}
 					}
 				}
@@ -318,6 +340,8 @@ void Editor::MainRenderPass()
 	if (isMeshSelected)
 		glStencilMask(0);
 
+
+	auto& scene = m_SceneState == SceneState::Playing ? m_RuntimeScene : m_EditorScene;
 	// Render Scene
 	{
 		auto& shader = Engine::Renderer::GetShader("PBR");
@@ -325,7 +349,7 @@ void Editor::MainRenderPass()
 		shader->SetUniformMatrix4("u_ProjectionView", m_Camera.GetProjectionViewMatrix());
 		shader->SetUniformFloat3("u_CameraPosition", m_Camera.GetPosition());
 
-		auto &directionalLight = m_Scene.environment.directionalLight;
+		auto &directionalLight = scene->environment.directionalLight;
 		shader->SetUniformInt("u_DirectionalLights[0].Active", directionalLight.active);
 		shader->SetUniformFloat3("u_DirectionalLights[0].Direction", directionalLight.direction);
 		shader->SetUniformFloat3("u_DirectionalLights[0].Radiance", directionalLight.radiance);
@@ -335,11 +359,11 @@ void Editor::MainRenderPass()
 		shader->SetUniformInt("u_EnvRadianceTex", 6);
 		shader->SetUniformInt("u_EnvIrradianceTex", 7);
 
-		m_Scene.environment.brdflutTexture->Bind(5);
-		m_Scene.environment.radianceMap->Bind(6);
-		m_Scene.environment.irradianceMap->Bind(7);
+		scene->environment.brdflutTexture->Bind(5);
+		scene->environment.radianceMap->Bind(6);
+		scene->environment.irradianceMap->Bind(7);
 
-		auto view = m_Scene.GetRegistry().view<Engine::TransformComponent, Engine::MeshComponent>();
+		auto view = scene->GetRegistry().view<Engine::TransformComponent, Engine::MeshComponent>();
 		view.each([=](const entt::entity ent, const Engine::TransformComponent& tc, const Engine::MeshComponent& mc)
 			{
 				if (mc.mesh->IsLoaded() && m_SelectedEntity.GetEntity() != ent)
@@ -357,12 +381,12 @@ void Editor::MainRenderPass()
 		shader->SetUniformMatrix4("u_Projection", proj);
 		shader->SetUniformMatrix4("u_View", view);
 		shader->SetUniformInt("u_ImageCube", 0);
-		shader->SetUniformFloat("u_TextureLod", m_Scene.environment.textureLod);
-		shader->SetUniformFloat("u_Exposure", m_Scene.environment.exposure);
+		shader->SetUniformFloat("u_TextureLod", scene->environment.textureLod);
+		shader->SetUniformFloat("u_Exposure", scene->environment.exposure);
 		
-		m_Scene.environment.radianceMap->Bind(0);
+		scene->environment.radianceMap->Bind(0);
 
-		Engine::Renderer::SubmitSkybox(m_Scene.environment.radianceMap, shader);
+		Engine::Renderer::SubmitSkybox(scene->environment.radianceMap, shader);
 	}
 
 	// Render selected mesh
@@ -401,9 +425,9 @@ void Editor::MainRenderPass()
 			shader->SetUniformInt("u_EnvRadianceTex", 6);
 			shader->SetUniformInt("u_EnvIrradianceTex", 7);
 
-			m_Scene.environment.brdflutTexture->Bind(5);
-			m_Scene.environment.radianceMap->Bind(6);
-			m_Scene.environment.irradianceMap->Bind(7);
+			scene->environment.brdflutTexture->Bind(5);
+			scene->environment.radianceMap->Bind(6);
+			scene->environment.irradianceMap->Bind(7);
 			Engine::Renderer::SubmitMesh(selectedMesh.mesh, transform.transform.GetTransform());
 
 			glStencilFunc(GL_NOTEQUAL, 1, 0xff);
@@ -563,18 +587,18 @@ void Editor::DrawHierarchy()
 		{
 			if (ImGui::MenuItem("Entity"))
 			{
-				m_SelectedEntity = m_Scene.CreateEntity();
+				m_SelectedEntity = m_EditorScene->CreateEntity();
 			}
 			ImGui::EndMenu();
 		}
 		ImGui::EndPopup();
 	}
 
-	auto view = m_Scene.GetRegistry().view<Engine::IDComponent>();
+	auto view = m_EditorScene->GetRegistry().view<Engine::IDComponent>();
 
 	for (auto entity : view)
 	{
-		Engine::Entity currentEntity = Engine::Entity(entity, &m_Scene);
+		Engine::Entity currentEntity = Engine::Entity(entity, m_EditorScene.get());
 		bool isActive = currentEntity.GetEntity() == m_SelectedEntity.GetEntity();
 
 		auto& idc = view.get<Engine::IDComponent>(entity);
@@ -937,13 +961,33 @@ void Editor::DrawDebugInfo()
 	}
 
 	if (ImGui::Button("Play"))
-		m_Scene.Play();
+	{
+		m_SceneState = SceneState::Playing;
+
+		if (m_SceneState == SceneState::Pausing)
+			return;
+
+		m_SelectedEntity = Engine::Entity();
+		m_ImGuizmoOperation = -1;
+
+		Engine::Scene::Copy(m_EditorScene, m_RuntimeScene);
+		m_RuntimeScene->SetupPhysicsSimulation();
+	}
 
 	if (ImGui::Button("Pause"))
-		m_Scene.Pause();
+	{
+		if (m_SceneState == SceneState::Playing)	// Can't pause when we are not playing
+		{
+			m_SceneState = SceneState::Pausing;
+
+		}
+	}
 
 	if (ImGui::Button("Reset"))
-		m_Scene.Reset();
+	{
+		m_SceneState = SceneState::Editing;
+
+	}
 
 	ImGui::SliderFloat("Physics Simulation Speed", &m_SimulationSpeed, 0.0f, 2.0f);
 
@@ -952,7 +996,7 @@ void Editor::DrawDebugInfo()
 
 void Editor::DrawEnvironmentSettings()
 {
-	auto& env = m_Scene.environment;
+	auto& env = m_EditorScene->environment;
 	auto& dl = env.directionalLight;
 
 	ImGui::Begin("Environment");

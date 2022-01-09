@@ -33,21 +33,19 @@ namespace Engine
 		float exposure = 1.0f;
 	};
 
-	enum class SceneState
-	{
-		Editing = 0,
-		Playing,
-		Pausing
-	};
-
 
 	class Entity;
 
 	class Scene
 	{
 	public:
+		static void Copy(SharedPtr<Scene> source, SharedPtr<Scene> destination);
+
+	public:
 		Scene() {}
 		~Scene() {}
+
+		Scene(const SharedPtr<Scene> &src);
 
 		Entity CreateEntity();
 		Entity CreateEntity(const std::string name);
@@ -56,12 +54,8 @@ namespace Engine
 		const entt::registry& GetRegistry() const { return m_Registry; }
 		entt::registry &GetRegistry() { return m_Registry; }
 
+		void SetupPhysicsSimulation();
 		void OnUpdate(float delta);
-		void OnEvent(Event& e);
-
-		void Play();
-		void Pause();
-		void Reset();
 
 	private:
 		void CopyRegistry(entt::registry& from, entt::registry& to);
@@ -70,11 +64,7 @@ namespace Engine
 		Environment environment;
 
 	private:
-		SceneState m_SceneState = SceneState::Editing;
-
 		entt::registry m_Registry;
-		entt::registry m_BackupRegistry;
-
 		b2World* m_PhysicsWorld { nullptr };
 	};
 }

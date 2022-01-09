@@ -18,9 +18,9 @@ namespace Engine
 	{
 		switch (bodyType)
 		{
-			case Rigidbody2DComponent::BodyType::Static:    return b2_staticBody;
-			case Rigidbody2DComponent::BodyType::Dynamic:   return b2_dynamicBody;
-			case Rigidbody2DComponent::BodyType::Kinematic: return b2_kinematicBody;
+		case Rigidbody2DComponent::BodyType::Static:    return b2_staticBody;
+		case Rigidbody2DComponent::BodyType::Dynamic:   return b2_dynamicBody;
+		case Rigidbody2DComponent::BodyType::Kinematic: return b2_kinematicBody;
 		}
 
 		ME_ASSERT(false); // Unknown body type
@@ -32,6 +32,26 @@ namespace Engine
 	{
 		if (from.has<Component>(entFrom))
 			to.emplace_or_replace<Component>(entTo, from.get<Component>(entFrom));
+	}
+
+	void Scene::Copy(SharedPtr<Scene> source, SharedPtr<Scene> destination)
+	{
+		destination->environment = source->environment;
+
+		destination->m_Registry.clear();
+		auto all = source->m_Registry.view<IDComponent>();
+
+		for (auto& currentEntity : all)
+		{
+			auto newEnt = destination->m_Registry.create();
+
+			ReplaceComponent<IDComponent>(source->m_Registry, currentEntity, destination->m_Registry, newEnt);
+			ReplaceComponent<TransformComponent>(source->m_Registry, currentEntity, destination->m_Registry, newEnt);
+			ReplaceComponent<MeshComponent>(source->m_Registry, currentEntity, destination->m_Registry, newEnt);
+			ReplaceComponent<Rigidbody2DComponent>(source->m_Registry, currentEntity, destination->m_Registry, newEnt);
+			ReplaceComponent<BoxCollider2DComponent>(source->m_Registry, currentEntity, destination->m_Registry, newEnt);
+			ReplaceComponent<CircleCollider2DComponent>(source->m_Registry, currentEntity, destination->m_Registry, newEnt);
+		}
 	}
 
 	Entity Scene::CreateEntity()
@@ -73,49 +93,8 @@ namespace Engine
 		return ent;
 	}
 
-	void Scene::OnUpdate(float delta)
+	void Scene::SetupPhysicsSimulation()
 	{
-		if (m_SceneState != SceneState::Playing)
-			return;
-
-		// Update Physics
-		const int32_t velocityIterations = 6;
-		const int32_t positionIterations = 2;
-		m_PhysicsWorld->Step(delta, velocityIterations, positionIterations);
-
-		// Retrieve transform from Box2D
-		auto view = m_Registry.view<Rigidbody2DComponent>();
-		for (auto e : view)
-		{
-			Entity entity = { e, this };
-			auto& transform = entity.Get<TransformComponent>().transform;
-			auto& rb2d = entity.Get<Rigidbody2DComponent>();
-
-			b2Body* body = (b2Body*)rb2d.RuntimeBody;
-			const auto& position = body->GetPosition();
-			transform.SetTranslation({ position.x, position.y, transform.GetTranslation().z });
-			transform.SetRotation({ transform.GetRotation().x, transform.GetRotation().y, body->GetAngle() });
-		}
-	}
-	void Scene::OnEvent(Event& e)
-	{
-	}
-
-	void Scene::Play()
-	{
-		if (m_SceneState == SceneState::Playing)
-			return;
-
-		if (m_SceneState == SceneState::Pausing) {
-			m_SceneState = SceneState::Playing;
-			return;
-		}
-
-		CopyRegistry(m_Registry, m_BackupRegistry);
-
-		ME_INFO("Starting Scene");
-		m_SceneState = SceneState::Playing;
-
 		m_PhysicsWorld = new b2World({ 0.0f, -9.81f });
 
 		auto view = m_Registry.view<Rigidbody2DComponent>();
@@ -168,39 +147,26 @@ namespace Engine
 			}
 		}
 	}
-	void Scene::Pause()
+
+	void Scene::OnUpdate(float delta)
 	{
-		if (m_SceneState != SceneState::Playing)	// Can't pause when we are not playing
-			return;
-		ME_INFO("Pausing Scene");
+		// Update Physics
+		const int32_t velocityIterations = 6;
+		const int32_t positionIterations = 2;
+		m_PhysicsWorld->Step(delta, velocityIterations, positionIterations);
 
-		m_SceneState = SceneState::Pausing;
-	}
-	void Scene::Reset()
-	{
-		if (m_SceneState == SceneState::Editing)
-			return;
-		ME_INFO("Resetting Scene");
-		m_SceneState = SceneState::Editing;
-
-		CopyRegistry(m_BackupRegistry, m_Registry);
-	}
-
-	void Scene::CopyRegistry(entt::registry& from, entt::registry& to)
-	{
-		to.clear();
-
-		auto all = from.view<IDComponent>();
-		for (auto& currentEntity : all)
+		// Retrieve transform from Box2D
+		auto view = m_Registry.view<Rigidbody2DComponent>();
+		for (auto e : view)
 		{
-			auto newEnt = to.create();
+			Entity entity = { e, this };
+			auto& transform = entity.Get<TransformComponent>().transform;
+			auto& rb2d = entity.Get<Rigidbody2DComponent>();
 
-			ReplaceComponent<IDComponent>(from, currentEntity, to, newEnt);
-			ReplaceComponent<TransformComponent>(from, currentEntity, to, newEnt);
-			ReplaceComponent<MeshComponent>(from, currentEntity, to, newEnt);
-			ReplaceComponent<Rigidbody2DComponent>(from, currentEntity, to, newEnt);
-			ReplaceComponent<BoxCollider2DComponent>(from, currentEntity, to, newEnt);
-			ReplaceComponent<CircleCollider2DComponent>(from, currentEntity, to, newEnt);
+			b2Body* body = (b2Body*)rb2d.RuntimeBody;
+			const auto& position = body->GetPosition();
+			transform.SetTranslation({ position.x, position.y, transform.GetTranslation().z });
+			transform.SetRotation({ transform.GetRotation().x, transform.GetRotation().y, body->GetAngle() });
 		}
 	}
 }

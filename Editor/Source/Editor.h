@@ -62,6 +62,14 @@ private:
 	}
 
 private:
+	enum class SceneState
+	{
+		Editing = 0,
+		Playing,
+		Pausing
+	};
+
+private:
 	glm::vec2 m_ViewportPosition = { 0.0f, 0.0f };
 	glm::vec2 m_ViewportSize = { 1280.0f, 720.0f };
 	bool m_ViewportSizeChanged = false;
@@ -81,7 +89,10 @@ private:
 
 	float m_SimulationSpeed = 1.0f;
 
-	Engine::Scene m_Scene;
+	SharedPtr<Engine::Scene> m_EditorScene;
+	SharedPtr<Engine::Scene> m_RuntimeScene;
+	SceneState m_SceneState = SceneState::Editing;
+
 	Engine::Entity m_SelectedEntity;
 
 	int m_ImGuizmoOperation = 0;
